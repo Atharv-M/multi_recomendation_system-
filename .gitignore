@@ -13,8 +13,8 @@ ENV/
 .ipynb_checkpoints/
 
 # Data
-data/
-datasets/
+/data/
+/datasets/
 *.csv
 *.dat
 
