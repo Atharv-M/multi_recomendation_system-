@@ -7,11 +7,7 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO,format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-#### Define paths
-
-RAW_DATA_DIR = Path("data/raw")
-PROCESSED_DATA_DIR = Path("data/processed")
-PROCESSED_DATA_DIR.mkdir(parents=True, exist_ok=True)
+from src.config import RAW_DATA_DIR, PROCESSED_DATA_DIR, GENOME_SCORE_THRESHOLD
 
 def load_data():
     """Load the raw data from the raw data directory"""
@@ -41,7 +37,7 @@ def aggregate_user_tags(tags):
     return tags.groupby("movieId")['tag'].apply(lambda x: " ".join(x.fillna('').astype(str))).reset_index()
    
 ## Genome Tags Preprocessing 
-def prcess_genome_data(genome_scores, genome_tags, threshold=0.5):
+def prcess_genome_data(genome_scores, genome_tags, threshold=GENOME_SCORE_THRESHOLD):
     logger.info("processing genome tag relevance data ")
     genome = genome_scores.merge(
         genome_tags,

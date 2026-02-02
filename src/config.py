@@ -1,0 +1,29 @@
+from pathlib import Path
+
+# Project root directory
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+# Data directories
+DATA_DIR = PROJECT_ROOT / "data"
+RAW_DATA_DIR = DATA_DIR / "raw"
+PROCESSED_DATA_DIR = DATA_DIR / "processed"
+
+# File paths
+MASTER_DATASET_PATH = PROCESSED_DATA_DIR / "master_dataset.csv"
+
+# Models and Features directory
+SAVED_FEATURES_DIR = PROJECT_ROOT / "saved_features"
+SAVED_FEATURES_DIR.mkdir(parents=True, exist_ok=True)
+
+# Processing parameters
+GENOME_SCORE_THRESHOLD = 0.5
+
+# Feature Engineering parameters
+TFIDF_PARAMS = {
+    "max_features": 5000,
+    "ngram_range": (1, 2),
+    "stop_words": "english"
+}
+
+# Popularity Model parameters
+MIN_VOTES_PERCENTILE = 0.90

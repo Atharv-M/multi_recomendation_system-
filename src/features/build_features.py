@@ -15,10 +15,7 @@ logging.basicConfig(
     format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger =logging.getLogger(__name__)
 
-## Paths 
-PROCESSED_DATA_PATH = Path("data/processed/master_dataset.csv")
-SAVED_FEATURES_DIR = Path("saved_features")
-SAVED_FEATURES_DIR.mkdir(parents=True, exist_ok=True)
+from src.config import MASTER_DATASET_PATH, SAVED_FEATURES_DIR, TFIDF_PARAMS
 
 
 ## Text Cleaning 
@@ -31,7 +28,7 @@ def clean_text(text):
 ## Build Features 
 def build_features():
     logger.info("Loading Processed Dataset")
-    df = pd.read_csv(PROCESSED_DATA_PATH)
+    df = pd.read_csv(MASTER_DATASET_PATH)
 
     ## Text Features
     """
@@ -46,10 +43,7 @@ def build_features():
     df["text_features"]=df["text_features"].apply(clean_text)
 
     ## Using TfidfVectorizer to convert text features into numeric features
-    tfidf=TfidfVectorizer(
-        max_features=5000,
-        ngram_range=(1,2),
-        stop_words="english")
+    tfidf=TfidfVectorizer(**TFIDF_PARAMS)
 
     text_vectors = tfidf.fit_transform(df["text_features"])
 
