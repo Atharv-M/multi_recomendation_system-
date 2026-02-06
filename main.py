@@ -6,10 +6,17 @@
 # recommendations = model.recommend(top_k=10)
 # print(recommendations)
 
-from src.models.content_based_model import ContentBasedRecommender
+# from src.models.content_based_model import ContentBasedRecommender
 
-model = ContentBasedRecommender()
-model.fit()
+# model = ContentBasedRecommender()
+# model.fit()
 
-# Example: recommendations similar to movieId = 1
-model.recommend(movie_id=1, top_k=10)
+# # Example: recommendations similar to movieId = 1
+# model.recommend(movie_id=1, top_k=10)
+
+from src.models.collaborative_filtering import CollaborativeFilter
+
+cf_model = CollaborativeFilter()
+cf_model.fit()
+
+cf_model.recommend(user_id=1, top_k=10)

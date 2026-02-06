@@ -44,6 +44,27 @@ class CollaborativeFilter():
         self.movies_df = pd.read_csv(MASTER_DATASET_PATH)
 
         logger.info("Collaborative Filtering Model Trained Successfully")
+    
+    def recommend(self, user_id, top_k=10):
+        if self.model is None:
+            raise ValueError("Model is not trained. Call fit() first")
+        
+        all_movie_ids = self.movies_df["movieId"].unique().tolist()
+        predictions=[
+            (movie_id, self.model.predict(user_id, movie_id).est)
+            for movie_id in all_movie_ids
+        ]
+        predictions=sorted(
+            predictions,
+            key=lambda x: x[1],
+            reverse=True
+        )[:top_k]
+
+        movie_ids = [p[0] for p in predictions]
+
+        return self.movies_df[
+            self.movies_df["movieId"].isin(movie_ids)
+            ][["movieId", "title", "genres"]]
         
 
     
