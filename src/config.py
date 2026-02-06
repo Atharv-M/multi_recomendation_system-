@@ -7,6 +7,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data"
 RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
+RATINGS_DIR = RAW_DATA_DIR / "rating.csv"
+MASTER_DIR = PROCESSED_DATA_DIR / "master_dataset.csv"
 
 # File paths
 MASTER_DATASET_PATH = PROCESSED_DATA_DIR / "master_dataset.csv"
@@ -14,6 +16,8 @@ MASTER_DATASET_PATH = PROCESSED_DATA_DIR / "master_dataset.csv"
 # Models and Features directory
 SAVED_FEATURES_DIR = PROJECT_ROOT / "saved_features"
 SAVED_FEATURES_DIR.mkdir(parents=True, exist_ok=True)
+MOVIE_FEATURES_PATH = SAVED_FEATURES_DIR / "movie_features.joblib"
+
 
 # Processing parameters
 GENOME_SCORE_THRESHOLD = 0.5

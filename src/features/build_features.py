@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 import joblib 
 
+from scipy.sparse import issparse
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import StandardScaler, MultiLabelBinarizer
 from scipy.sparse import hstack
@@ -14,6 +15,10 @@ logging.basicConfig(
     level=logging.INFO,
     format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger =logging.getLogger(__name__)
+
+import sys
+import os 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
 from src.config import MASTER_DATASET_PATH, SAVED_FEATURES_DIR, TFIDF_PARAMS
 
@@ -66,14 +71,16 @@ def build_features():
     first apply log transformation to the rating_count column to reduce skewness.
     then apply standard scaling to the avg_rating and rating_count_log columns.
     """
-
+    df["avg_rating"].fillna(0,inplace=True)
+    df["rating_count"].fillna(0,inplace=True) ## Helps in Cosine similarity Calculation 
 
     logger.info("Scaling Numeric Features")
     df["rating_count_log"] = np.log1p(df["rating_count"])
+    numeric_data = df[["avg_rating", "rating_count_log"]].values
+    # Replace any remaining NaN values with 0
+    numeric_data = np.nan_to_num(numeric_data)
     scaler = StandardScaler()
-    numeric_vectors = scaler.fit_transform(
-        df[["avg_rating", "rating_count_log"]]
-    )
+    numeric_vectors = scaler.fit_transform(numeric_data)
 
     ## Merging all Features 
 
@@ -87,7 +94,12 @@ def build_features():
         genre_vectors,
         numeric_vectors
     ])
-
+    ## Check for NaNs
+    if issparse(movie_features):
+        assert not np.isnan(movie_features.data).any(), "NaNs in sparse features"
+    else:
+        assert not np.isnan(movie_features).any(), "NaNs in features"
+    
     ## Saving Features 
 
     """

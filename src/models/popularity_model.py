@@ -53,5 +53,5 @@ class build_popularity_model():
         if self.master_df is None:
             raise ValueError("Model is not trained. Call fit() first")
         
-        return self.master_df[["movieId", "title", "popularity_score"]].head(top_k)        
+        return self.master_df[["movieId", "title", "popularity_score", "genres"]].head(top_k)     
        
