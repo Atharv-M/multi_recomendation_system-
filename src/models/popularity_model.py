@@ -9,7 +9,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class build_popularity_model():
+class PopularityRecommender():
     def __init__(self, min_votes_percentile=MIN_VOTES_PERCENTILE):
         self.min_votes_percentile = min_votes_percentile
         self.master_df = None

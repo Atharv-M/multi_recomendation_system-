@@ -26,7 +26,7 @@ class CollaborativeFilter():
         logger.info("Loading Data")
         ratings = pd.read_csv(RATINGS_DIR)
 
-        reader = Reader(rating_scale=(0.5,5.0))
+        reader = Reader(rating_scale=(0.5,5.0)) # Rating scale is from 0.5 to 5.0  it will be used to normalize the ratings 
         data = Dataset.load_from_df(
             ratings[["userId", "movieId", "rating"]],
             reader
@@ -34,7 +34,7 @@ class CollaborativeFilter():
 
         trainset, _ = train_test_split(data, test_size=0.2)
         logger.info("Training SVD Collaborative filtering Model..")
-        self.model = SVD(
+        self.model = SVD( 
             n_factors=self.n_factors,
             n_epochs=self.n_epochs,
             random_state=42,
