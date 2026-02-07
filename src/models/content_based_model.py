@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 import joblib   
 from sklearn.metrics.pairwise import cosine_similarity
-from src.config import MASTER_DATASET_PATH, SAVED_FEATURES_DIR, MOVIE_FEATURES_PATH
+from src.config import MASTER_DATASET_PATH, SAVED_FEATURES_DIR, MOVIE_FEATURES_PATH,CONTENT_MODEL_PATH
 
 ## Configuring Logging 
 logging.basicConfig(
@@ -32,6 +32,19 @@ class ContentBasedRecommender():
         self.cosine_ma = cosine_similarity(self.movie_features)
 
         logger.info("Content Based Model Trained Successfully ")
+    
+    def save(self):
+        np.save(CONTENT_MODEL_PATH/"cosine_similarity.npy",self.cosine_ma)
+        logger.info(f"Content Based Model saved to {CONTENT_MODEL_PATH/"cosine_similarity.npy"}")
+        joblib.dump(self.movies_df,CONTENT_MODEL_PATH/"movies_index.pkl")
+        logger.info(f"Content Based Model saved to {CONTENT_MODEL_PATH/"movies_index.pkl"}")
+
+        
+    def load(self):
+        self.cosine_ma = np.load(CONTENT_MODEL_PATH/"cosine_similarity.npy")
+        logger.info(f"Content Based Model loaded from {CONTENT_MODEL_PATH/"cosine_similarity.npy"}")
+        self.movies_df = joblib.load(CONTENT_MODEL_PATH/"movies_index.pkl")
+        logger.info(f"Content Based Model loaded from {CONTENT_MODEL_PATH/"movies_index.pkl"}")
         
     def recommend(self, movie_id, top_k=10):
         if self.cosine_ma is None:
@@ -62,3 +75,4 @@ class ContentBasedRecommender():
         # Get the Recommended Movie indices
         movie_indices = [i[0] for i in similarity_scores]
         return self.movies_df.iloc[movie_indices][["movieId", "title",  "genres"]]
+    

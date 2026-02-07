@@ -1,11 +1,12 @@
 import pandas as pd
 import logging 
+import joblib
 from pathlib import Path
 from surprise import Dataset, Reader, SVD
 from surprise.model_selection import train_test_split #Inspried by scikit Learn used for recommendation system 
 from surprise import accuracy
 
-from src.config import RATINGS_DIR,MASTER_DATASET_PATH
+from src.config import RATINGS_DIR,MASTER_DATASET_PATH,CF_MODEL_PATH
 
 ## Configuring Logging 
 logging.basicConfig(
@@ -44,6 +45,15 @@ class CollaborativeFilter():
         self.movies_df = pd.read_csv(MASTER_DATASET_PATH)
 
         logger.info("Collaborative Filtering Model Trained Successfully")
+
+    
+    def save(self):
+        joblib.dump(self.model, CF_MODEL_PATH/"svd_model.pkl")
+        joblib.dump(self.movies_df,CF_MODEL_PATH/"movies_df.pkl")
+       
+    def load(self):
+        self.model = joblib.load(CF_MODEL_PATH/"svd_model.pkl")
+        self.movies_df = joblib.load(CF_MODEL_PATH/"movies_df.pkl")
     
     def recommend(self, user_id, top_k=10):
         if self.model is None:
@@ -66,5 +76,5 @@ class CollaborativeFilter():
             self.movies_df["movieId"].isin(movie_ids)
             ][["movieId", "title", "genres"]]
         
-
+    
     

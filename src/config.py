@@ -9,14 +9,25 @@ RAW_DATA_DIR = DATA_DIR / "raw"
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
 RATINGS_DIR = RAW_DATA_DIR / "rating.csv"
 MASTER_DIR = PROCESSED_DATA_DIR / "master_dataset.csv"
+ARTIFACTS_DIR = PROJECT_ROOT / "artifacts"
+
 
 # File paths
 MASTER_DATASET_PATH = PROCESSED_DATA_DIR / "master_dataset.csv"
 
 # Models and Features directory
-SAVED_FEATURES_DIR = PROJECT_ROOT / "saved_features"
+SAVED_FEATURES_DIR = ARTIFACTS_DIR / "saved_features"
 SAVED_FEATURES_DIR.mkdir(parents=True, exist_ok=True)
 MOVIE_FEATURES_PATH = SAVED_FEATURES_DIR / "movie_features.joblib"
+
+POPULARITY_MODEL_PATH = ARTIFACTS_DIR / "popularity"
+POPULARITY_MODEL_PATH.mkdir(parents=True, exist_ok=True)
+
+CONTENT_MODEL_PATH = ARTIFACTS_DIR / "content"
+CONTENT_MODEL_PATH.mkdir(parents=True, exist_ok=True)
+
+CF_MODEL_PATH = ARTIFACTS_DIR / "collaborative"
+CF_MODEL_PATH.mkdir(parents=True, exist_ok=True)
 
 
 # Processing parameters

@@ -27,6 +27,19 @@ class HybridRecommender():
         self._is_fitted = True
         logger.info("Hybrid model Trained Succefully")
     
+    def save(self):
+        self.popularity_model.save()
+        self.content_model.save()
+        self.cf_model.save()
+        logger.info("Hybrid model saved successfully")
+    
+    def load(self):
+        self.popularity_model.load()
+        self.content_model.load()
+        self.cf_model.load()
+        self._is_fitted = True
+        logger.info("Hybrid model loaded successfully")
+    
     def recommend(
         self,
         user_id=None,

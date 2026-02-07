@@ -1,6 +1,7 @@
 import pandas as pd
 import logging
-from src.config import MASTER_DATASET_PATH,MIN_VOTES_PERCENTILE
+import joblib
+from src.config import MASTER_DATASET_PATH,MIN_VOTES_PERCENTILE,POPULARITY_MODEL_PATH,ARTIFACTS_DIR
 
 ## Configuring Logging 
 logging.basicConfig(
@@ -9,7 +10,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-class PopularityRecommender():
+class PopularityRecommender():  
     def __init__(self, min_votes_percentile=MIN_VOTES_PERCENTILE):
         self.min_votes_percentile = min_votes_percentile
         self.master_df = None
@@ -49,9 +50,18 @@ class PopularityRecommender():
         self.master_df = df.sort_values(by="popularity_score",ascending=False)
         logger.info("Popularity model trained  successfully")
 
+    def save(self):
+        joblib.dump(self.master_df, POPULARITY_MODEL_PATH/"popularity_ranked.pkl")
+        logger.info(f"Popularity model saved to {POPULARITY_MODEL_PATH/"popularity_ranked.pkl"}")
+    
+    def load(self):
+        self.master_df = joblib.load(POPULARITY_MODEL_PATH/"popularity_ranked.pkl")
+        logger.info(f"Popularity model loaded from {POPULARITY_MODEL_PATH/"popularity_ranked.pkl"}")
+
     def recommend(self, top_k=10):
         if self.master_df is None:
             raise ValueError("Model is not trained. Call fit() first")
         
         return self.master_df[["movieId", "title", "popularity_score", "genres"]].head(top_k)     
        
+    
