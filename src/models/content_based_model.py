@@ -72,7 +72,7 @@ class ContentBasedRecommender():
         ## Exclude the movie itself from recommendations 
         similarity_scores = similarity_scores[1:top_k+1]
 
-        # Get the Recommended Movie indices
+        # Get the Recommended Movie indices 
         movie_indices = [i[0] for i in similarity_scores]
         return self.movies_df.iloc[movie_indices][["movieId", "title",  "genres"]]
     

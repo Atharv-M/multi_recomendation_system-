@@ -44,7 +44,7 @@ class CollaborativeFilter():
         logger.info("Loading the Master Dataset")
         self.movies_df = pd.read_csv(MASTER_DATASET_PATH)
 
-        logger.info("Collaborative Filtering Model Trained Successfully")
+        logger.info("Collaborative Filtering Model Trained Successfully used for Hybrid Model")
 
     
     def save(self):
