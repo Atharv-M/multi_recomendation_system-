@@ -78,3 +78,5 @@ class CollaborativeFilter():
         
     
     
+""" Now I Need to reduce the Size the of the model so that We can save the Memory and Easily Deploy it 
+"""
