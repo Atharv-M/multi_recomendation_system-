@@ -21,8 +21,4 @@ ENV/
 # OS
 .DS_Store
 
-# Artifacts & Models
-artifacts/
-*.pkl
-*.npy
-*.zip
+
