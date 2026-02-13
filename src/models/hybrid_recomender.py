@@ -1,7 +1,7 @@
 import logging 
 import pandas as pd
 from src.models.popularity_model import PopularityRecommender
-from src.models.collaborative_filtering import CollaborativeFilter
+from src.models.collaborative_filtering import CollaborativeRecommender
 from src.models.content_based_model import ContentBasedRecommender
 
 logging.basicConfig(
@@ -14,8 +14,8 @@ class HybridRecommender():
     def __init__(self,alpha=0.7):
         self.alpha = alpha
         self.popularity_model =PopularityRecommender()
-        self.content_model = ContentBasedRecommender()
-        self.cf_model = CollaborativeFilter()
+        self.content_model = ContentBasedRecommender()  
+        self.cf_model = CollaborativeRecommender()
 
         self._is_fitted = False
     

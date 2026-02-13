@@ -62,7 +62,7 @@ class ContentBasedRecommender:
         logger.info("Loading Top-K Similarity Model")
         self.topk_similarity = joblib.load(CONTENT_MODEL_PATH/"topk_movie_similarity.joblib")
 
-    def get_recommendations(self,movie_id:int,top_k:int=10):
+    def recommend(self,movie_id:int,top_k:int=10):
         if self.topk_similarity is None:
             raise ValueError("Model is not Loaded call load() first")
         
