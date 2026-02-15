@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Movie Recommendation System</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>🎬 Movie Recommendation System</h1>
+
+        <div class="search-container">
+            <input type="text" id="movie-search" placeholder="Search for a movie..." autocomplete="off">
+            <div id="suggestions" class="suggestions-box"></div>
+        </div>
+
+        <div id="recommendations-section" style="display: none;">
+            <h2>Recommended Movies</h2>
+            <div id="recommendations" class="movie-row"></div>
+        </div>
+
+        <h2>Top Rated Movies</h2>
+        <div id="top-rated" class="movie-row"></div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById("movie-search");
+        const suggestionsBox = document.getElementById("suggestions");
+        const recommendationsSection = document.getElementById("recommendations-section");
+        const recommendationsBox = document.getElementById("recommendations");
+        const topRatedBox = document.getElementById("top-rated");
+
+        // Load Top Rated Movies on Startup
+        window.onload = async () => {
+            const response = await fetch("/recommend/cold-start?top_k=20");
+            const data = await response.json();
+            const movies = data.recommendations;
+
+            topRatedBox.innerHTML = "";
+            movies.forEach(movie => {
+                topRatedBox.appendChild(createMovieCard(movie));
+            });
+        };
+
+        searchInput.addEventListener("input", async () => {
+            const query = searchInput.value;
+
+            if (query.length < 2) {
+                suggestionsBox.innerHTML = "";
+                return;
+            }
+
+            const response = await fetch(`/search?query=${query}`);
+            const movies = await response.json();
+
+            suggestionsBox.innerHTML = "";
+
+            movies.forEach(movie => {
+                const div = document.createElement("div");
+                div.classList.add("suggestion-item");
+                div.innerText = movie.title;
+
+                div.onclick = () => {
+                    searchInput.value = movie.title;
+                    suggestionsBox.innerHTML = "";
+                    loadRecommendations(movie.movieId);
+                };
+
+                suggestionsBox.appendChild(div);
+            });
+        });
+
+        async function loadRecommendations(movieId) {
+            const response = await fetch(`/recommend/similar/${movieId}`);
+            const data = await response.json();
+            const movies = data.recommendations;
+
+            recommendationsSection.style.display = "block";
+            recommendationsBox.innerHTML = "";
+
+            movies.forEach(movie => {
+                recommendationsBox.appendChild(createMovieCard(movie));
+            });
+        }
+
+        function createMovieCard(movie) {
+            const card = document.createElement("div");
+            card.classList.add("movie-card");
+
+            // Clean up genres for display (take first 2)
+            const genres = movie.genres ? movie.genres.replace(/\|/g, ', ') : 'Unknown';
+            const poster = movie.poster ? movie.poster : "https://via.placeholder.com/200x300?text=No+Poster";
+
+            card.innerHTML = `
+                <img src="${poster}" alt="${movie.title}" loading="lazy">
+                <div class="movie-info">
+                    <h3>${movie.title}</h3>
+                    <p>🎭 ${genres}</p>
+                </div>
+            `;
+            return card;
+        }
+    </script>
+
+</body>
+
+</html>
