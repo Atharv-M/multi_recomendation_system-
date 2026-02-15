@@ -14,3 +14,4 @@ SUPABASE_JWT_ALGORITHM = os.getenv("SUPABASE_JWT_ALGORITHM", "HS256")
 # Safety checks (fail fast)
 if not SUPABASE_JWT_SECRET:
     raise RuntimeError("SUPABASE_JWT_SECRET not found in .env")
+MASTER_DATASET_PATH = Path(__file__).parent.parent / "data" / "processed" / "master_dataset.csv"

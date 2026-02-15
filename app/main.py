@@ -1,6 +1,6 @@
 import logging
 from fastapi import FastAPI
-from app.routes import recommend
+from app.routes import recommend, search
 
 logging.basicConfig(level=logging.INFO)
 
@@ -11,6 +11,7 @@ app = FastAPI(
 )
 
 app.include_router(recommend.router)
+app.include_router(search.router)
 
 
 @app.get("/")

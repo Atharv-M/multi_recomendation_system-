@@ -66,22 +66,62 @@ The API will be available at:
 ## 📂 Project Structure
 
 ```
-├── .gitattributes      # Git LFS configuration
-├── .gitignore          # Git ignore rules
-├── app/                # FastAPI application
-│   ├── main.py         # App entry point
-│   ├── routes/         # API endpoints
-│   └── ...
-├── artifacts/          # Trained models (tracked by LFS)
-│   ├── collaborative/  # SVD models
-│   ├── content/        # Content-based models
-│   └── ...
-├── data/               # Raw and processed data
-├── src/                # Source code for models & processing
-│   ├── models/         # Recommendation logic
-│   └── ...
-├── requirements.txt    # Project dependencies
-└── README.md           # Project documentation
+.
+├── app/                        # Main FastAPI application
+│   ├── auth/                   # Authentication module
+│   │   └── supabase_auth.py    # Supabase authentication integration
+│   ├── routes/                 # API route definitions
+│   │   └── recommend.py        # Recommendation API endpoints
+│   ├── config.py               # Application configuration settings
+│   ├── dependencies.py         # Dependency injection logic
+│   ├── main.py                 # App entry point (Uvicorn app instance)
+│   └── schemas.py              # Pydantic models for request/response validation
+│
+├── artifacts/                  # Trained models and data artifacts (Git LFS tracked)
+│   ├── collaborative/          # Collaborative filtering (SVD) artifacts
+│   │   ├── movies_df.pkl       # Movies dataframe for CF
+│   │   └── svd_model.pkl       # Serialized SVD model
+│   ├── content/                # Content-based filtering artifacts
+│   │   ├── movies_index.pkl    # Movie index mapping
+│   │   └── topk_movie_similarity.joblib # Precomputed similarity matrix
+│   ├── metadata/               # Metadata for movies
+│   │   └── movies_df.pkl       # Enriched movies dataframe
+│   ├── popularity/             # Popularity-based model artifacts
+│   │   └── popularity_ranked.pkl # Ranked popular movies list
+│   └── saved_features/         # Feature engineering artifacts
+│       ├── mlb.joblib          # MultiLabelBinarizer for genres
+│       ├── movie_features.joblib # Processed movie features
+│       ├── scaler.joblib       # Standard scaler for normalization
+│       └── tfidf.joblib        # TF-IDF vectorizer model
+│
+├── data/                       # Data storage directory
+│   ├── processed/              # Cleaned and processed datasets
+│   │   └── master_dataset.csv  # Final dataset for modeling
+│   └── raw/                    # Raw MovieLens source data
+│       ├── genome_scores.csv   # Tag relevance scores
+│       ├── genome_tags.csv     # Tag descriptions
+│       ├── link.csv            # IMDb/TMDB ID links
+│       ├── movie.csv           # Movie titles and genres
+│       ├── rating.csv          # User ratings
+│       └── tag.csv             # User-assigned tags
+│
+├── src/                        # Data Science Pipeline source code
+│   ├── data/                   # Data processing scripts
+│   │   └── build_dataset.py    # Script to build and clean datasets
+│   ├── features/               # Feature engineering scripts
+│   │   └── build_features.py   # Script to generate model features
+│   ├── models/                 # Recommendation model definitions
+│   │   ├── collaborative_filtering.py # SVD implementation
+│   │   ├── content_based_model.py     # Content-based logic
+│   │   ├── hybrid_recomender.py       # Hybrid model orchestrator
+│   │   └── popularity_model.py        # Popularity baseline model
+│   └── config.py               # Pipeline configuration
+│
+├── data_cleaning.ipynb         # Notebook for data exploration and cleaning
+├── training.ipynb              # Notebook for model training and evaluation
+├── main.py                     # Script entry point (local testing)
+├── requirements.txt            # Python dependencies
+└── README.md                   # Project documentation
 ```
 
 ## 🤝 Contributing
