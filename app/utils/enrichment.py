@@ -15,12 +15,17 @@ def enrich_movies(recommendations_df: pd.DataFrame, links_df: pd.DataFrame):
         imdb_id = imdb_map.get(movie_id)
         omdb_data = None
         
+        imdb_url = None
         if imdb_id is not None and not pd.isna(imdb_id):
+            # Format IMDb ID with 'tt' prefix and 7 digits padding
+            formatted_imdb_id = f"tt{int(imdb_id):07d}"
+            imdb_url = f"https://www.imdb.com/title/{formatted_imdb_id}/"
+            
             try:
                 # OMDB ID is usually an integer in the CSV, get_movie_details handles the "tt" prefix
                 omdb_data = get_movie_details(imdb_id)
-            except Exception as e:
-                print(f"Error fetching OMDB data for movie {movie_id}: {e}")
+            except Exception:
+                print(f"Error fetching OMDB data for movie {movie_id}")
         
         return {
             "movieId": movie_id,
@@ -28,7 +33,8 @@ def enrich_movies(recommendations_df: pd.DataFrame, links_df: pd.DataFrame):
             "genres": row["genres"],
             "poster": omdb_data["poster"] if omdb_data else None,
             "rating": omdb_data["rating"] if omdb_data else None,
-            "overview": omdb_data["overview"] if omdb_data else None
+            "overview": omdb_data["overview"] if omdb_data else None,
+            "imdb_link": imdb_url
         }
 
     # Use ThreadPoolExecutor to fetch details in parallel

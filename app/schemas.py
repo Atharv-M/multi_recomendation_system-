@@ -8,6 +8,7 @@ class RecommendationResponse(BaseModel):
     poster: Optional[str] = None
     rating: Optional[float] = None
     overview: Optional[str] = None
+    imdb_link: Optional[str] = None
 
 class RecommendationList(BaseModel):
     recommendations: List[RecommendationResponse]

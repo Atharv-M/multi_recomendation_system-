@@ -93,11 +93,16 @@
             const genres = movie.genres ? movie.genres.replace(/\|/g, ', ') : 'Unknown';
             const poster = movie.poster ? movie.poster : "https://via.placeholder.com/200x300?text=No+Poster";
 
+            const imdbLinkHtml = movie.imdb_link
+                ? `<a href="${movie.imdb_link}" target="_blank" class="imdb-link" style="display: block; margin-top: 5px; color: #f5c518; text-decoration: none; font-weight: bold;">Watch on IMDb ↗</a>`
+                : '';
+
             card.innerHTML = `
                 <img src="${poster}" alt="${movie.title}" loading="lazy">
                 <div class="movie-info">
                     <h3>${movie.title}</h3>
                     <p>🎭 ${genres}</p>
+                    ${imdbLinkHtml}
                 </div>
             `;
             return card;
