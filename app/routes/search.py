@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Query
 import pandas as pd
-from app.config import MASTER_DATASET_PATH
+import joblib
+from src.config import MOVIES_DF_PKL_PATH
 
 router = APIRouter()
 
-movies_df = pd.read_csv(MASTER_DATASET_PATH)
+movies_df = joblib.load(MOVIES_DF_PKL_PATH)
 
 
 @router.get("/search")

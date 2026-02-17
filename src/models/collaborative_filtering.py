@@ -89,7 +89,7 @@ from pathlib import Path
 from surprise import Dataset, Reader, SVD
 from surprise.model_selection import train_test_split
 
-from src.config import RATINGS_DIR, MASTER_DATASET_PATH, CF_MODEL_PATH
+from src.config import RATINGS_DIR, MASTER_DATASET_PATH, CF_MODEL_PATH, MOVIES_DF_PKL_PATH
 
 # -----------------------------
 # Logging
@@ -171,8 +171,9 @@ class CollaborativeRecommender:
         logger.info("Loading trained SVD model...")
         self.model = joblib.load(CF_MODEL_PATH / "svd_model.pkl")
 
+        
         logger.info("Loading movie metadata...")
-        self.movies_df = pd.read_csv(MASTER_DATASET_PATH)
+        self.movies_df = joblib.load(MOVIES_DF_PKL_PATH)
 
         logger.info("Collaborative model loaded successfully.")
 

@@ -20,7 +20,7 @@ import sys
 import os 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
-from src.config import MASTER_DATASET_PATH, SAVED_FEATURES_DIR, TFIDF_PARAMS
+from src.config import MASTER_DATASET_PATH, SAVED_FEATURES_DIR, TFIDF_PARAMS, MOVIES_DF_PKL_PATH, LINKS_PKL_PATH, RAW_DATA_DIR
 
 
 ## Text Cleaning 
@@ -33,7 +33,18 @@ def clean_text(text):
 ## Build Features 
 def build_features():
     logger.info("Loading Processed Dataset")
+    logger.info("Loading Processed Dataset")
     df = pd.read_csv(MASTER_DATASET_PATH)
+
+    # Save the dataframe as a pickle file for faster loading
+    logger.info(f"Saving Master Dataset to {MOVIES_DF_PKL_PATH}")
+    joblib.dump(df, MOVIES_DF_PKL_PATH)
+
+    logger.info("Loading Links Dataset")
+    links_df = pd.read_csv(RAW_DATA_DIR / "link.csv")
+    
+    logger.info(f"Saving Links Dataset to {LINKS_PKL_PATH}")
+    joblib.dump(links_df, LINKS_PKL_PATH)
 
     ## Text Features
     """

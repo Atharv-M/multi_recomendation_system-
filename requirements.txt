@@ -20,6 +20,6 @@ requests>=2.30.0
 python-dotenv>=1.0.0
 
 # Jupyter / Development
-jupyter>=1.0.0
-notebook>=7.0.0
-ipykernel>=6.0.0
+# jupyter>=1.0.0
+# notebook>=7.0.0
+# ipykernel>=6.0.0

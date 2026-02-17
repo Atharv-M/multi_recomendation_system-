@@ -1,7 +1,8 @@
 import logging
 import pandas as pd
+import joblib
 from src.models.hybrid_recomender import HybridRecommender
-from app.config import LINKS_DATASET_PATH
+from src.config import LINKS_PKL_PATH
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ def get_hybrid_model():
 def get_links_df():
     global links_df
     if links_df is None:
-        links_df = pd.read_csv(LINKS_DATASET_PATH)
+        links_df = joblib.load(LINKS_PKL_PATH)
         logger.info("Links Dataset Loaded Successfully")
     return links_df
     

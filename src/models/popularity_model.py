@@ -1,7 +1,7 @@
 import pandas as pd
 import logging
 import joblib
-from src.config import MASTER_DATASET_PATH,MIN_VOTES_PERCENTILE,POPULARITY_MODEL_PATH,ARTIFACTS_DIR
+from src.config import MASTER_DATASET_PATH,MIN_VOTES_PERCENTILE,POPULARITY_MODEL_PATH,ARTIFACTS_DIR,MOVIES_DF_PKL_PATH
 
 ## Configuring Logging 
 logging.basicConfig(
@@ -16,8 +16,9 @@ class PopularityRecommender():
         self.master_df = None
     
     def fit(self):
+
         logger.info("Loading Master Dataset")
-        df = pd.read_csv(MASTER_DATASET_PATH)
+        df = joblib.load(MOVIES_DF_PKL_PATH)
 
 
         """ Using a weighted rating formula (IMDb-style):

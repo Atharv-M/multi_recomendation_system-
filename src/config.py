@@ -29,6 +29,11 @@ CONTENT_MODEL_PATH.mkdir(parents=True, exist_ok=True)
 CF_MODEL_PATH = ARTIFACTS_DIR / "collaborative"
 CF_MODEL_PATH.mkdir(parents=True, exist_ok=True)
 
+METADATA_PATH = ARTIFACTS_DIR / "metadata"
+METADATA_PATH.mkdir(parents=True, exist_ok=True)
+MOVIES_DF_PKL_PATH = METADATA_PATH / "movies_df.pkl"
+LINKS_PKL_PATH = METADATA_PATH / "links.pkl"
+
 
 # Processing parameters
 GENOME_SCORE_THRESHOLD = 0.5
