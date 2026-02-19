@@ -12,7 +12,7 @@ movies_df = joblib.load(MOVIES_DF_PKL_PATH)
 def search_movies(query: str = Query(..., min_length=2)):
 
     results = movies_df[
-        movies_df["title"].str.contains(query, case=False, na=False)
+        movies_df["title"].str.contains(query, case=False, na=False, regex=False)
     ][["movieId", "title"]].head(10)
 
     return results.to_dict(orient="records")
