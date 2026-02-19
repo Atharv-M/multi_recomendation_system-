@@ -25,9 +25,26 @@ app.include_router(search.router)
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
+    from app.config import SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY
     return templates.TemplateResponse(
         "index.html",
-        {"request": request}
+        {
+            "request": request,
+            "supabase_url": SUPABASE_PROJECT_URL,
+            "supabase_key": SUPABASE_ANON_KEY
+        }
+    )
+
+@app.get("/login", response_class=HTMLResponse)
+def login_page(request: Request):
+    from app.config import SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY
+    return templates.TemplateResponse(
+        "login.html",
+        {
+            "request": request,
+            "supabase_url": SUPABASE_PROJECT_URL,
+            "supabase_key": SUPABASE_ANON_KEY
+        }
     )
 
 @app.get("/health")

@@ -2,6 +2,8 @@
 <html>
 
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movie Recommendation System</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -9,11 +11,35 @@
 <body>
 
     <div class="container">
+
+
+        <!-- Auth Section -->
+        <div id="auth-container" style="text-align: right; margin-bottom: 20px;">
+            <div id="logged-out-view">
+                <a href="/login"
+                    style="padding: 8px 16px; background-color: #f5c518; color: black; text-decoration: none; border-radius: 4px; font-weight: bold;">Login
+                    / Sign Up</a>
+            </div>
+            <div id="logged-in-view" style="display: none;">
+                <span id="user-email" style="margin-right: 15px; font-weight: bold;"></span>
+                <button onclick="loadPersonalRecommendations()"
+                    style="padding: 8px 16px; background-color: #f5c518; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 10px;">My
+                    Recommendations</button>
+                <button onclick="handleLogout()"
+                    style="padding: 8px 16px; background-color: #333; color: white; border: none; border-radius: 4px; cursor: pointer;">Logout</button>
+            </div>
+        </div>
+
         <h1>🎬 Movie Recommendation System</h1>
 
         <div class="search-container">
             <input type="text" id="movie-search" placeholder="Search for a movie..." autocomplete="off">
             <div id="suggestions" class="suggestions-box"></div>
+        </div>
+
+        <div id="personal-recommendations-section" style="display: none;">
+            <h2>Your Personal Recommendations</h2>
+            <div id="personal-recommendations" class="movie-row"></div>
         </div>
 
         <div id="recommendations-section" style="display: none;">
@@ -25,26 +51,172 @@
         <div id="top-rated" class="movie-row"></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // Initialize Supabase (Values injected from backend via Jinja2)
+        const supabaseUrl = "{{ supabase_url }}";
+        const supabaseKey = "{{ supabase_key }}";
+
+        // Debug Logger
+        function logDebug(message, data = null) {
+            console.log(message, data);
+        }
+
+        // Fix: Use 'supabaseClient' instead of 'supabase' to avoid shadowing the global 'supabase' variable from CDN
+        let supabaseClient = null;
+        try {
+            if (!supabaseUrl || !supabaseKey || supabaseUrl.includes("None") || supabaseKey.includes("None")) {
+                throw new Error("Missing Supabase Configuration. Check .env file.");
+            }
+
+            // Check if global supabase object exists
+            if (typeof supabase === 'undefined') {
+                throw new Error("Supabase JS Library not loaded. Check internet connection or CDN.");
+            }
+
+            supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+            logDebug("Supabase Initialized", { url: supabaseUrl });
+        } catch (err) {
+            logDebug("CRITICAL ERROR: Supabase Init Failed", err.message);
+            alert("Critical Error: " + err.message);
+        }
+
         const searchInput = document.getElementById("movie-search");
         const suggestionsBox = document.getElementById("suggestions");
         const recommendationsSection = document.getElementById("recommendations-section");
         const recommendationsBox = document.getElementById("recommendations");
         const topRatedBox = document.getElementById("top-rated");
 
+        const authContainer = document.getElementById("auth-container");
+        const loggedOutView = document.getElementById("logged-out-view");
+        const loggedInView = document.getElementById("logged-in-view");
+        const userEmailSpan = document.getElementById("user-email");
+        const authMessage = document.getElementById("auth-message");
+        const personalRecSection = document.getElementById("personal-recommendations-section");
+        const personalRecBox = document.getElementById("personal-recommendations");
+
+        let currentUser = null;
+
         // Load Top Rated Movies on Startup
         window.onload = async () => {
-            const response = await fetch("/recommend/cold-start?top_k=20");
-            const data = await response.json();
-            const movies = data.recommendations;
+            logDebug("Application Loaded");
+            if (supabaseClient) {
+                await checkUser();
+            } else {
+                logDebug("Skipping User Check - Supabase not ready");
+            }
 
-            topRatedBox.innerHTML = "";
-            movies.forEach(movie => {
-                topRatedBox.appendChild(createMovieCard(movie));
-            });
+            try {
+                const response = await fetch("/recommend/cold-start?top_k=5");
+                const data = await response.json();
+                const movies = data.recommendations;
+
+                topRatedBox.innerHTML = "";
+                movies.forEach(movie => {
+                    topRatedBox.appendChild(createMovieCard(movie));
+                });
+                logDebug("Top Rated Movies Loaded");
+            } catch (err) {
+                logDebug("Error loading top rated movies", err.message);
+            }
         };
 
+        // Auth Functions
+        async function checkUser() {
+            logDebug("Checking User Session...");
+            try {
+                const { data: { session }, error } = await supabaseClient.auth.getSession();
+                if (error) {
+                    logDebug("Session Check Error", error);
+                    return;
+                }
+
+                if (session) {
+                    currentUser = session.user;
+                    logDebug("User found in session", currentUser.email);
+                    updateAuthUI(true);
+                } else {
+                    currentUser = null;
+                    logDebug("No active session");
+                    updateAuthUI(false);
+                }
+
+                supabaseClient.auth.onAuthStateChange((event, session) => {
+                    logDebug("Auth State Changed", event);
+                    if (event === 'SIGNED_IN') {
+                        currentUser = session.user;
+                        updateAuthUI(true);
+                    } else if (event === 'SIGNED_OUT') {
+                        currentUser = null;
+                        updateAuthUI(false);
+                    }
+                });
+            } catch (err) {
+                logDebug("Unlockable error in checkUser", err.message);
+            }
+        }
+
+        function updateAuthUI(isLoggedIn) {
+            const loggedInView = document.getElementById("logged-in-view");
+            if (isLoggedIn) {
+                loggedOutView.style.display = "none";
+                loggedInView.style.display = "block";
+                userEmailSpan.innerText = currentUser.email;
+            } else {
+                loggedOutView.style.display = "block";
+                loggedInView.style.display = "none";
+                personalRecSection.style.display = "none";
+            }
+        }
+
+
+
+        async function handleLogout() {
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) logDebug('Error logging out:', error);
+            else logDebug("Logged out successfully");
+        }
+
+        async function loadPersonalRecommendations() {
+            if (!currentUser) return;
+
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const token = session.access_token;
+
+            try {
+                const response = await fetch("/recommend/user/personal", {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to fetch recommendations');
+
+                const data = await response.json();
+                const movies = data.recommendations;
+
+                personalRecSection.style.display = "block";
+                personalRecBox.innerHTML = "";
+                movies.forEach(movie => {
+                    personalRecBox.appendChild(createMovieCard(movie));
+                });
+            } catch (error) {
+                console.error(error);
+                alert("Error fetching personal recommendations.");
+            }
+        }
+
+
         searchInput.addEventListener("input", async () => {
+            if (!currentUser) {
+                // Clear input if user tries to type without login
+                if (searchInput.value.length > 0) {
+                    alert("Please login to search for movies!");
+                    searchInput.value = "";
+                }
+                return;
+            }
+
             const query = searchInput.value;
 
             if (query.length < 2) {
@@ -108,7 +280,7 @@
             return card;
         }
     </script>
-
+    
 </body>
 
 </html>

@@ -7,10 +7,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from tqdm import tqdm
 
 ## Configuring Logging 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+
 logger = logging.getLogger(__name__)
 
 def build_topk_similarity(top_k: int=20):

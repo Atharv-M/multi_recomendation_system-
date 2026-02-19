@@ -94,10 +94,7 @@ from src.config import RATINGS_DIR, MASTER_DATASET_PATH, CF_MODEL_PATH, MOVIES_D
 # -----------------------------
 # Logging
 # -----------------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+
 logger = logging.getLogger(__name__)
 
 

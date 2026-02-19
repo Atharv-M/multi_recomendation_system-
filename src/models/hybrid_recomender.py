@@ -4,10 +4,7 @@ from src.models.popularity_model import PopularityRecommender
 from src.models.collaborative_filtering import CollaborativeRecommender
 from src.models.content_based_model import ContentBasedRecommender
 
-logging.basicConfig(
-    level=logging.INFO,
-    format ="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+
 logger = logging.getLogger(__name__)
 
 class HybridRecommender():

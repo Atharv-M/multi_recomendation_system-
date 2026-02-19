@@ -4,10 +4,7 @@ import joblib
 from src.config import MASTER_DATASET_PATH,MIN_VOTES_PERCENTILE,POPULARITY_MODEL_PATH,ARTIFACTS_DIR,MOVIES_DF_PKL_PATH
 
 ## Configuring Logging 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+
 logger = logging.getLogger(__name__)
 
 class PopularityRecommender():  

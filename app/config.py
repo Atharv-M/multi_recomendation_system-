@@ -17,5 +17,9 @@ OMDB_API_KEY = os.getenv("OMDB_API_KEY")
 # Safety checks (fail fast)
 if not SUPABASE_JWT_SECRET:
     raise RuntimeError("SUPABASE_JWT_SECRET not found in .env")
+if not SUPABASE_PROJECT_URL:
+    raise RuntimeError("SUPABASE_PROJECT_URL not found in .env")
+if not SUPABASE_ANON_KEY:
+    raise RuntimeError("SUPABASE_ANON_KEY not found in .env")
 MASTER_DATASET_PATH = Path(__file__).parent.parent / "data" / "processed" / "master_dataset.csv"
 LINKS_DATASET_PATH = Path(__file__).parent.parent / "data" / "raw" / "link.csv"

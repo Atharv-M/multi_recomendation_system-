@@ -22,14 +22,14 @@ def cold_start_recommendations(
     }
 
 
-@router.get("/user/{user_id}", response_model=RecommendationList)
+@router.get("/user/personal", response_model=RecommendationList)
 def user_recommendations(
-    user_id: int,
+    user_id: str = Depends(get_current_user),
     top_k: int = Query(10, ge=1, le=50),
     model=Depends(get_hybrid_model),
     links_df=Depends(get_links_df)
 ):
-    df = model.recommend(user_id=user_id, top_k=top_k)
+    df = model.recommend(user_id=int(user_id), top_k=top_k)
     enriched_recommendations = enrich_movies(df, links_df)
 
     return {

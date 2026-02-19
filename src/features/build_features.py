@@ -32,7 +32,7 @@ def clean_text(text):
 
 ## Build Features 
 def build_features():
-    logger.info("Loading Processed Dataset")
+    
     logger.info("Loading Processed Dataset")
     df = pd.read_csv(MASTER_DATASET_PATH)
 

@@ -15,10 +15,18 @@ def get_current_user(
             SUPABASE_JWT_SECRET,
             algorithms=[SUPABASE_JWT_ALGORITHM]
         )
+        user_id = payload.get("sub")
+        if not user_id:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired Supabase  Toekn"
+            )
+        return user_id
+        
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired Supabase  Toekn"
+            detail="Invalid or expired Supabase Token"
         )
 
     return payload

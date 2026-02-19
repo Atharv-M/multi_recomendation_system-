@@ -144,3 +144,52 @@ input:focus {
     color: #aaa;
     margin: 0;
 }
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+        padding: 10px 0;
+    }
+
+    h1 {
+        font-size: 24px;
+        margin-bottom: 20px;
+    }
+
+    h2 {
+        font-size: 20px;
+        margin-top: 30px;
+        border-left: 4px solid #e50914;
+    }
+
+    .search-container {
+        width: 100%;
+        margin-bottom: 25px;
+    }
+
+    input {
+        padding: 12px;
+        font-size: 16px;
+    }
+
+    .movie-card {
+        min-width: 150px;
+        width: 150px;
+    }
+
+    .movie-card img {
+        height: 225px; /* 1.5 aspect ratio */
+    }
+
+    .movie-info {
+        padding: 10px;
+    }
+
+    .movie-card h3 {
+        font-size: 14px;
+    }
+
+    .movie-card p {
+        font-size: 12px;
+    }
+}
