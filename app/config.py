@@ -14,7 +14,7 @@ TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 OMDB_API_KEY = os.getenv("OMDB_API_KEY")
 
 
-# Safety checks (fail fast)
+# Safety checks (fail fast
 if not SUPABASE_JWT_SECRET:
     raise RuntimeError("SUPABASE_JWT_SECRET not found in .env")
 if not SUPABASE_PROJECT_URL:

@@ -29,7 +29,7 @@ def user_recommendations(
     model=Depends(get_hybrid_model),
     links_df=Depends(get_links_df)
 ):
-    df = model.recommend(user_id=int(user_id), top_k=top_k)
+    df = model.recommend(user_id=user_id, top_k=top_k)
     enriched_recommendations = enrich_movies(df, links_df)
 
     return {

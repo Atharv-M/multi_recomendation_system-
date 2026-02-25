@@ -6,12 +6,95 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movie Recommendation System</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        /* Onboarding Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 900px;
+            max-height: 80vh;
+            overflow-y: auto;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-content h2 {
+            margin-bottom: 10px;
+            color: #f5c518;
+        }
+
+        .modal-content p {
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+
+        .rating-progress {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #4CAF50;
+        }
+
+        /* Star Rating Widget */
+        .star-rating {
+            display: inline-flex;
+            flex-direction: row-reverse;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .star-rating input {
+            display: none;
+        }
+
+        .star-rating label {
+            font-size: 24px;
+            color: #444;
+            cursor: pointer;
+            transition: color 0.2s;
+            margin: 0 2px;
+        }
+
+        .star-rating label:hover,
+        .star-rating label:hover~label,
+        .star-rating input:checked~label {
+            color: #f5c518;
+        }
+    </style>
 </head>
 
 <body>
 
     <div class="container">
 
+        <!-- Onboarding Modal -->
+        <div id="onboarding-modal" class="modal-overlay" style="display: none;">
+            <div class="modal-content">
+                <h2>Welcome to Your New Account! 🍿</h2>
+                <p>To give you the best recommendations, please rate at least 5 movies below or search for your
+                    favorites.</p>
+                <div class="search-container" style="margin-bottom: 20px;">
+                    <input type="text" id="onboarding-search" placeholder="Search for your favorite movies..."
+                        autocomplete="off">
+                </div>
+                <div class="rating-progress" id="rating-progress">Ratings Needed: 5</div>
+                <div id="onboarding-movies" class="movie-row" style="justify-content: center; flex-wrap: wrap;"></div>
+            </div>
+        </div>
 
         <!-- Auth Section -->
         <div id="auth-container" style="text-align: right; margin-bottom: 20px;">
@@ -135,20 +218,23 @@
                     currentUser = session.user;
                     logDebug("User found in session", currentUser.email);
                     updateAuthUI(true);
+                    await checkOnboardingRequired(session.access_token);
                 } else {
                     currentUser = null;
                     logDebug("No active session");
                     updateAuthUI(false);
                 }
 
-                supabaseClient.auth.onAuthStateChange((event, session) => {
+                supabaseClient.auth.onAuthStateChange(async (event, session) => {
                     logDebug("Auth State Changed", event);
                     if (event === 'SIGNED_IN') {
                         currentUser = session.user;
                         updateAuthUI(true);
+                        await checkOnboardingRequired(session.access_token);
                     } else if (event === 'SIGNED_OUT') {
                         currentUser = null;
                         updateAuthUI(false);
+                        document.getElementById("onboarding-modal").style.display = "none";
                     }
                 });
             } catch (err) {
@@ -156,12 +242,97 @@
             }
         }
 
+        // --- Onboarding Logic ---
+        let userRatingCount = 0;
+
+        async function checkOnboardingRequired(token) {
+            try {
+                // Fetch user's rating count from Supabase
+                const { count, error } = await supabaseClient
+                    .from('ratings')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('user_id', currentUser.id);
+
+                if (error) throw error;
+
+                if (count < 5) {
+                    userRatingCount = count;
+                    showOnboardingModal();
+                } else {
+                    document.getElementById("onboarding-modal").style.display = "none";
+                }
+            } catch (err) {
+                logDebug("Error checking onboarding status", err.message);
+            }
+        }
+
+        async function showOnboardingModal() {
+            const modal = document.getElementById("onboarding-modal");
+            const moviesContainer = document.getElementById("onboarding-movies");
+            const progress = document.getElementById("rating-progress");
+
+            progress.innerText = `Ratings Needed: ${5 - userRatingCount}`;
+            modal.style.display = "flex";
+
+            if (moviesContainer.children.length === 0) {
+                try {
+                    // Fetch popular movies for new users to rate
+                    const response = await fetch("/recommend/cold-start?top_k=20");
+                    const data = await response.json();
+
+                    data.recommendations.forEach(movie => {
+                        moviesContainer.appendChild(createMovieCard(movie));
+                    });
+                } catch (err) {
+                    logDebug("Error loading onboarding movies", err.message);
+                }
+            }
+        }
+
+        // --- Onboarding Search Handler ---
+        const onboardingSearchInput = document.getElementById("onboarding-search");
+        let onboardingSearchTimeout = null;
+
+        onboardingSearchInput.addEventListener("input", () => {
+            clearTimeout(onboardingSearchTimeout);
+            const query = onboardingSearchInput.value;
+
+            if (query.length < 2) {
+                // If they clear the search, maybe re-trigger the default popular movies
+                if (query.length === 0) {
+                    document.getElementById("onboarding-movies").innerHTML = "";
+                    showOnboardingModal();
+                }
+                return;
+            }
+
+            // Debounce the fetch to avoid spamming the backend
+            onboardingSearchTimeout = setTimeout(async () => {
+                const response = await fetch(`/search?query=${query}`);
+                const movies = await response.json();
+
+                const moviesContainer = document.getElementById("onboarding-movies");
+                moviesContainer.innerHTML = ""; // clear popular movies
+
+                if (movies.length === 0) {
+                    moviesContainer.innerHTML = "<p style='color: white;'>No movies found. Try another search!</p>";
+                    return;
+                }
+
+                movies.forEach(movie => {
+                    moviesContainer.appendChild(createMovieCard(movie));
+                });
+            }, 300); // 300ms delay
+        });
+
         function updateAuthUI(isLoggedIn) {
             const loggedInView = document.getElementById("logged-in-view");
             if (isLoggedIn) {
                 loggedOutView.style.display = "none";
                 loggedInView.style.display = "block";
-                userEmailSpan.innerText = currentUser.email;
+                const userName = currentUser.user_metadata?.full_name;
+                const displayIdentifier = userName ? userName : currentUser.email;
+                userEmailSpan.innerText = "Welcome, " + displayIdentifier;
             } else {
                 loggedOutView.style.display = "block";
                 loggedInView.style.display = "none";
@@ -269,18 +440,78 @@
                 ? `<a href="${movie.imdb_link}" target="_blank" class="imdb-link" style="display: block; margin-top: 5px; color: #f5c518; text-decoration: none; font-weight: bold;">Watch ↗</a>`
                 : '';
 
+            const uniqueId = Math.random().toString(36).substring(7);
+
             card.innerHTML = `
                 <img src="${poster}" alt="${movie.title}" loading="lazy">
                 <div class="movie-info">
                     <h3>${movie.title}</h3>
                     <p>🎭 ${genres}</p>
                     ${imdbLinkHtml}
+                    ${currentUser ? `
+                    <div class="star-rating" id="rating-${uniqueId}">
+                        <input type="radio" id="star5-${uniqueId}" name="rating-${uniqueId}" value="5" onclick="rateMovie(${movie.movieId}, 5, '${uniqueId}')" />
+                        <label for="star5-${uniqueId}">★</label>
+                        <input type="radio" id="star4-${uniqueId}" name="rating-${uniqueId}" value="4" onclick="rateMovie(${movie.movieId}, 4, '${uniqueId}')" />
+                        <label for="star4-${uniqueId}">★</label>
+                        <input type="radio" id="star3-${uniqueId}" name="rating-${uniqueId}" value="3" onclick="rateMovie(${movie.movieId}, 3, '${uniqueId}')" />
+                        <label for="star3-${uniqueId}">★</label>
+                        <input type="radio" id="star2-${uniqueId}" name="rating-${uniqueId}" value="2" onclick="rateMovie(${movie.movieId}, 2, '${uniqueId}')" />
+                        <label for="star2-${uniqueId}">★</label>
+                        <input type="radio" id="star1-${uniqueId}" name="rating-${uniqueId}" value="1" onclick="rateMovie(${movie.movieId}, 1, '${uniqueId}')" />
+                        <label for="star1-${uniqueId}">★</label>
+                    </div>` : ''}
                 </div>
             `;
             return card;
         }
+
+        async function rateMovie(movieId, rating, widgetId) {
+            if (!currentUser) {
+                alert("Please login to rate movies!");
+                return;
+            }
+
+            try {
+                const { data: { session } } = await supabaseClient.auth.getSession();
+
+                const response = await fetch(`/feedback/rate?movie_id=${movieId}&rating=${rating}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${session.access_token}`
+                    }
+                });
+
+                if (response.ok) {
+                    // Visually disable widget after successful rating
+                    const widget = document.getElementById(`rating-${widgetId}`);
+                    widget.style.pointerEvents = 'none';
+                    widget.style.opacity = '0.5';
+
+                    // Update onboarding if visible
+                    const modal = document.getElementById("onboarding-modal");
+                    if (modal.style.display !== "none") {
+                        userRatingCount++;
+                        const needed = 5 - userRatingCount;
+                        if (needed <= 0) {
+                            modal.style.display = "none";
+                            alert("Thank you! Your account is fully set up.");
+                            // Reload recommendations since they have ratings now
+                            loadPersonalRecommendations();
+                        } else {
+                            document.getElementById("rating-progress").innerText = `Ratings Needed: ${needed}`;
+                        }
+                    }
+                } else {
+                    const errorData = await response.json();
+                    alert("Error saving rating: " + (errorData.detail || 'Unknown error'));
+                }
+            } catch (err) {
+                console.error("Failed to submit rating", err);
+            }
+        }
     </script>
-    
+
 </body>
 
 </html>

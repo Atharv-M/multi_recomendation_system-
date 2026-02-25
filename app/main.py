@@ -1,6 +1,6 @@
 import logging
 from fastapi import FastAPI
-from app.routes import recommend, search
+from app.routes import recommend, search, feedback
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -22,6 +22,7 @@ templates = Jinja2Templates(directory="app/templates")
 
 app.include_router(recommend.router)
 app.include_router(search.router)
+app.include_router(feedback.router)
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):

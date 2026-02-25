@@ -83,6 +83,7 @@
     <div class="login-container">
         <h2>🎬 Login</h2>
 
+        <input type="text" id="name" placeholder="Full Name (optional for login)">
         <input type="email" id="email" placeholder="Email">
         <input type="password" id="password" placeholder="Password">
 
@@ -136,6 +137,7 @@
         }
 
         async function handleSignUp() {
+            const name = document.getElementById("name").value;
             const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
             const msg = document.getElementById("auth-message");
@@ -146,6 +148,11 @@
             const { data, error } = await supabaseClient.auth.signUp({
                 email,
                 password,
+                options: {
+                    data: {
+                        full_name: name
+                    }
+                }
             });
 
             if (error) {

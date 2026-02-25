@@ -15,6 +15,7 @@ pydantic>=2.0.0
 python-multipart>=0.0.6
 python-jose[cryptography]>=3.3.0
 requests>=2.30.0
+supabase>=2.3.0
 
 # Configuration
 python-dotenv>=1.0.0
