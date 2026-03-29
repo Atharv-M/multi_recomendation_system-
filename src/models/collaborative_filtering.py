@@ -7,12 +7,10 @@ from surprise.model_selection import train_test_split
 
 from src.config import RATINGS_DIR, MASTER_DATASET_PATH, CF_MODEL_PATH, MOVIES_DF_PKL_PATH
 
-# -----------------------------
+
 # Logging
-# -----------------------------
 
 logger = logging.getLogger(__name__)
-
 
 class CollaborativeRecommender:
     """
@@ -27,10 +25,7 @@ class CollaborativeRecommender:
         self.n_epochs = n_epochs
         self.model = None
         self.movies_df = None
-
-    # -----------------------------
-    # TRAIN MODEL (Offline)
-    # -----------------------------
+    
     def fit(self):
 
         logger.info("Loading ratings dataset...")
@@ -58,9 +53,8 @@ class CollaborativeRecommender:
 
         logger.info("Collaborative Filtering model trained successfully.")
 
-    # -----------------------------
     # SAVE MODEL
-    # -----------------------------
+   
     def save(self):
 
         if self.model is None:
@@ -76,9 +70,8 @@ class CollaborativeRecommender:
 
         logger.info("SVD model saved successfully.")
 
-    # -----------------------------
     # LOAD MODEL (Runtime)
-    # -----------------------------
+   
     def load(self):
 
         logger.info("Loading trained SVD model...")
@@ -90,9 +83,8 @@ class CollaborativeRecommender:
 
         logger.info("Collaborative model loaded successfully.")
 
-    # -----------------------------
     # RECOMMEND
-    # -----------------------------
+   
     def recommend(self, user_id: str, top_k: int = 10):
 
         if self.model is None:

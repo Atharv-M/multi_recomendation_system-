@@ -14,9 +14,6 @@ from src.config import RATINGS_DIR, DATA_DIR, MOVIES_DF_PKL_PATH, NCF_MODEL_PATH
 logger = logging.getLogger(__name__)
 TAGS_DIR = DATA_DIR / "raw" / "tag.csv"
 
-# -----------------------------
-# HYBRID IMPLICIT DATASET
-# -----------------------------
 class HybridImplicitDataset(Dataset):
     def __init__(self, users, items, timestamps, labels, movie_genre_matrix, movie_tags_matrix):
         self.users = torch.tensor(users, dtype=torch.long)
@@ -36,9 +33,8 @@ class HybridImplicitDataset(Dataset):
         i = self.items[idx]
         return u, i, self.movie_genre_matrix[i], self.timestamps[idx], self.movie_tags_matrix[i], self.labels[idx]
 
-# -----------------------------
 # HYBRID NeuMF MODEL
-# -----------------------------
+
 class HybridNeuMFModel(nn.Module):
     def __init__(self, num_users, num_items, num_genres, num_tags, mf_dim=16, mlp_dim=32, tag_dim=16, hidden_layers=[128, 64, 32]):
         super(HybridNeuMFModel, self).__init__()
@@ -114,10 +110,8 @@ class HybridNeuMFModel(nn.Module):
         prediction = self.prediction_layer(neumf_vector)
         return prediction.squeeze(1)
 
-
-# -----------------------------
 # RECOMMENDER WRAPPER
-# -----------------------------
+
 class NeuralCollaborativeRecommender:
     def __init__(self, mf_dim=16, mlp_dim=32, tag_dim=16, n_epochs=5, batch_size=4096, lr=0.001):
         self.mf_dim = mf_dim
@@ -348,6 +342,102 @@ class NeuralCollaborativeRecommender:
         self.model.to(self.device)
         self.model.eval()
         self.movies_df = joblib.load(MOVIES_DF_PKL_PATH)
+
+    def finetune(self, new_ratings_df, epochs=15, lr=0.005):
+        if self.model is None:
+            raise ValueError("Model not loaded. Call load() before finetune()!")
+            
+        logger.info(f"Initiating surgical Deep Learning Fine-Tuning for {len(new_ratings_df)} Database interactions...")
+        
+        # 1. Map new UUIDs to __GUEST__ slots structurally
+        unique_new_users = new_ratings_df['userId'].astype(str).unique()
+        users_injected = 0
+        for u in unique_new_users:
+            if u not in self.user2idx:
+                guest_keys = [k for k in self.user2idx.keys() if str(k).startswith("__GUEST_")]
+                if not guest_keys:
+                    logger.error("FATAL: Out of __GUEST__ padding slots! Cannot inject new users.")
+                    continue
+                available_guest = guest_keys[0]
+                idx = self.user2idx.pop(available_guest) # Remove guest name
+                # Overwrite coordinate identically!
+                self.user2idx[u] = idx
+                self.idx2user[idx] = u
+                logger.info(f"Surgically assigned new user UUID {u} to Neural Tensor Row {idx}")
+                users_injected += 1
+                
+        # 2. Extract Valid Rows
+        users_mapped = []
+        items_mapped = []
+        for index, row in new_ratings_df.iterrows():
+            u_str = str(row['userId'])
+            m_id = int(row['movieId'])
+            if u_str in self.user2idx and m_id in self.item2idx:
+                users_mapped.append(self.user2idx[u_str])
+                items_mapped.append(self.item2idx[m_id])
+                
+        n_valid = len(users_mapped)
+        if n_valid == 0:
+            logger.info("No valid mappings for fine-tuning. Ignoring iteration.")
+            return
+            
+        # 3. Micro Negative Sampling
+        n_total_valid = n_valid * 5
+        u_arr = np.empty(n_total_valid, dtype=np.int32)
+        i_arr = np.empty(n_total_valid, dtype=np.int32)
+        y_arr = np.empty(n_total_valid, dtype=np.float32)
+        
+        u_arr[0:n_valid] = users_mapped
+        i_arr[0:n_valid] = items_mapped
+        y_arr[0:n_valid] = 1.0
+        
+        all_items_list = list(self.item2idx.values())
+        idx_offset = n_valid
+        for i in range(n_valid):
+            negs = np.random.choice(all_items_list, size=4, replace=False)
+            u_arr[idx_offset:idx_offset+4] = users_mapped[i]
+            i_arr[idx_offset:idx_offset+4] = negs
+            y_arr[idx_offset:idx_offset+4] = 0.0
+            idx_offset += 4
+            
+        # 4. Deep Feature Extraction (Genres/Tags)
+        items_df = pd.DataFrame({'movieId': [self.idx2item[i] for i in i_arr], 'item_idx': i_arr})
+        items_df = items_df.merge(self.movies_df[['movieId', 'genres']], on='movieId', how='left')
+        items_df['genres'] = items_df['genres'].fillna("Unknown").str.split('|')
+        
+        genres_encoded = self.mlb.transform(items_df['genres'])
+        timestamps_scaled = np.ones(len(items_df))
+        
+        default_pad = [0] * self.max_tags_per_movie
+        tags_array = items_df['movieId'].map(lambda m: self.movie_tags.get(m, default_pad)).tolist()
+        tags_np = np.array(tags_array)
+        
+        # Deploy straight to GPU/CPU Ram Array limits bypassed!
+        user_tensor = torch.tensor(u_arr, dtype=torch.long).to(self.device)
+        item_tensor = torch.tensor(i_arr, dtype=torch.long).to(self.device)
+        genre_tensor = torch.tensor(genres_encoded, dtype=torch.float32).to(self.device)
+        time_tensor = torch.tensor(timestamps_scaled, dtype=torch.float32).to(self.device)
+        tag_tensor = torch.tensor(tags_np, dtype=torch.long).to(self.device)
+        y_tensor = torch.tensor(y_arr, dtype=torch.float32).to(self.device)
+        
+        # 5. Ignite the Optimizer Native Micro-Batch loop
+        self.model.train()
+        criterion = nn.BCELoss()
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
+        
+        logger.info(f"Targeting Backpropagation on {n_total_valid} User Interactions...")
+        for epoch in range(epochs):
+            optimizer.zero_grad()
+            preds = self.model(user_tensor, item_tensor, genre_tensor, time_tensor, tag_tensor)
+            loss = criterion(preds, y_tensor)
+            loss.backward()
+            optimizer.step()
+            
+            if (epoch+1) % 5 == 0:
+                logger.info(f"FineTune Epoch {epoch+1}/{epochs} - Micro BCE Loss: {loss.item():.4f}")
+                
+        logger.info(f"God-Tier Fine-Tuning execution fully complete across {users_injected} New Sign-Ups!")
+
 
     def recommend(self, user_id: str, top_k: int = 10):
         if self.model is None:
