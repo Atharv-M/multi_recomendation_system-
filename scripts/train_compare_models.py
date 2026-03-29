@@ -10,7 +10,7 @@ import joblib
 
 import torch
 
-from src.config import RATINGS_DIR
+from src.config import RATINGS_DIR, CF_MODEL_PATH
 from src.models.ncf import NeuralCollaborativeRecommender
 
 def get_hit_ratio(rank_list, target_item):
@@ -112,17 +112,12 @@ def main():
     train_df = ratings.drop(test_df.index)
     
     # -------------------------------------------------------------
-    # 1. TRAIN SVD (Baseline)
+    # 1. LOAD SVD (Baseline) FROM DISK
     # -------------------------------------------------------------
-    print("\n--- Training SVD Baseline (scikit-surprise) ---")
-    reader = Reader(rating_scale=(0.5, 5.0))
-    train_data = Dataset.load_from_df(train_df[["userId", "movieId", "rating"]], reader)
-    trainset = train_data.build_full_trainset()
-    
-    svd = SVD(n_factors=20, n_epochs=15, random_state=42)
+    print("\n--- Loading SVD Baseline (scikit-surprise) from Disk ---")
     start_time = time.time()
-    svd.fit(trainset)
-    print(f"SVD Massive Training Time: {time.time() - start_time:.2f} seconds")
+    svd = joblib.load(CF_MODEL_PATH / "svd_model.pkl")
+    print(f"SVD Massive 150MB Payload Loaded in: {time.time() - start_time:.2f} seconds")
 
     # -------------------------------------------------------------
     # 2. LOAD THE MODELS FROM DISK & EVALUATE
