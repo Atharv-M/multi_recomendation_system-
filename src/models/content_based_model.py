@@ -36,11 +36,11 @@ def build_topk_similarity(top_k: int=20):
 
             topk_similarity[movie_ids[idx]] = [(movie_ids[i], float(score)) for i , score in top_k_similarity] 
 
+        sim_save_path = CONTENT_MODEL_PATH / "topk_movie_similarity.joblib"
         logger.info("Saving the Top K Similarity Matrix")
-        joblib.dump(topk_similarity,CONTENT_MODEL_PATH/"topk_movie_similarity.joblib")
+        joblib.dump(topk_similarity, sim_save_path)
         CONTENT_MODEL_PATH.mkdir(parents=True, exist_ok=True)
-
-        logger.info(f"Top K Similarity Matrix saved to {CONTENT_MODEL_PATH/"topk_movie_similarity.joblib"}")  
+        logger.info(f"Top K Similarity Matrix saved to {sim_save_path}")
         
         # Free Memory explicitly 
         del cosine_sim

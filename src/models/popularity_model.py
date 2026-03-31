@@ -49,12 +49,14 @@ class PopularityRecommender():
         logger.info("Popularity model trained  successfully")
 
     def save(self):
-        joblib.dump(self.master_df, POPULARITY_MODEL_PATH/"popularity_ranked.pkl")
-        logger.info(f"Popularity model saved to {POPULARITY_MODEL_PATH/"popularity_ranked.pkl"}")
+        save_path = POPULARITY_MODEL_PATH / "popularity_ranked.pkl"
+        joblib.dump(self.master_df, save_path)
+        logger.info(f"Popularity model saved to {save_path}")
     
     def load(self):
-        self.master_df = joblib.load(POPULARITY_MODEL_PATH/"popularity_ranked.pkl")
-        logger.info(f"Popularity model loaded from {POPULARITY_MODEL_PATH/"popularity_ranked.pkl"}")
+        load_path = POPULARITY_MODEL_PATH / "popularity_ranked.pkl"
+        self.master_df = joblib.load(load_path)
+        logger.info(f"Popularity model loaded from {load_path}")
 
     def recommend(self, top_k=10):
         if self.master_df is None:
