@@ -1,11 +1,13 @@
 import requests
 import logging
 from app.config import OMDB_API_KEY
+from functools import lru_cache
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "http://www.omdbapi.com/"
 
+@lru_cache(maxsize=2048)
 def get_movie_details(imdb_id: str):
 
     if not imdb_id:
@@ -44,3 +46,4 @@ def get_movie_details(imdb_id: str):
         "rating": data.get("imdbRating"),
         "overview": data.get("Plot")
     }
+    

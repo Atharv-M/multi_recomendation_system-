@@ -83,7 +83,7 @@
     <div class="login-container">
         <h2>🎬 Login</h2>
 
-        <input type="text" id="name" placeholder="Full Name (optional for login)">
+        <input type="text" id="name" placeholder="Full Name (Compulsory for Sign Up!)">
         <input type="email" id="email" placeholder="Email">
         <input type="password" id="password" placeholder="Password">
 
@@ -137,10 +137,16 @@
         }
 
         async function handleSignUp() {
-            const name = document.getElementById("name").value;
+            const name = document.getElementById("name").value.trim();
             const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
             const msg = document.getElementById("auth-message");
+
+            if (!name) {
+                msg.innerText = "Error: Full Name is required to register! ⚠️";
+                msg.style.color = "red";
+                return;
+            }
 
             msg.innerText = "Signing up...";
             msg.style.color = "#888";

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from typing import Optional, List
 from app.dependencies import get_hybrid_model, get_links_df
-from app.schemas import RecommendationResponse, RecommendationList
+from app.schemas import RecommendationResponse, RecommendationList, DualRecommendationList
 from app.auth.supabase_auth import get_current_user
 from app.utils.enrichment import enrich_movies
 
@@ -22,18 +22,20 @@ def cold_start_recommendations(
     }
 
 
-@router.get("/user/personal", response_model=RecommendationList)
+@router.get("/user/personal", response_model=DualRecommendationList)
 def user_recommendations(
     user_id: str = Depends(get_current_user),
     top_k: int = Query(10, ge=1, le=50),
     model=Depends(get_hybrid_model),
     links_df=Depends(get_links_df)
 ):
-    df = model.recommend(user_id=user_id, top_k=top_k)
-    enriched_recommendations = enrich_movies(df, links_df)
+    svd_df, ncf_df = model.recommend_dual(user_id=user_id, top_k=top_k)
+    svd_recs = enrich_movies(svd_df, links_df)
+    ncf_recs = enrich_movies(ncf_df, links_df)
 
     return {
-        "recommendations": enriched_recommendations
+        "svd_recommendations": svd_recs,
+        "ncf_recommendations": ncf_recs
     }
 
 

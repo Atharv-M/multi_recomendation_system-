@@ -74,10 +74,49 @@
         .star-rating input:checked~label {
             color: #f5c518;
         }
+
+        /* Full Page Loading Spinner */
+        #global-spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: #f5c518;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .spinner {
+            border: 8px solid #333;
+            border-top: 8px solid #f5c518;
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 25px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 
 <body>
+
+    <!-- Global Loading Spinner Overlay -->
+    <div id="global-spinner-overlay" style="display: none;">
+        <div class="spinner"></div>
+        <div id="spinner-message">Compiling AI Models in the Cloud... ⏳</div>
+    </div>
 
     <div class="container">
 
@@ -115,18 +154,25 @@
 
         <h1>🎬 Movie Recommendation System</h1>
 
-        <div class="search-container">
+        <div class="search-container" id="main-search-container">
             <input type="text" id="movie-search" placeholder="Search for a movie..." autocomplete="off">
             <div id="suggestions" class="suggestions-box"></div>
         </div>
 
         <div id="personal-recommendations-section" style="display: none;">
-            <h2>Your Personal Recommendations</h2>
-            <div id="personal-recommendations" class="movie-row"></div>
+            <h2 style="color: #f5c518;">⚡ Fast Math (SVD) Recommendations</h2>
+            <div id="svd-recommendations" class="movie-row"></div>
+            
+            <h2 style="color: #4CAF50; margin-top: 40px;">🧠 Ultra Deep-Learning (NeuMF) Recommendations</h2>
+            <div id="ncf-recommendations" class="movie-row"></div>
         </div>
 
         <div id="recommendations-section" style="display: none;">
-            <h2>Recommended Movies</h2>
+            <div id="searched-movie-section">
+                <h2 style="color: #aaa; font-size: 1rem; text-transform: uppercase; letter-spacing: 2px;">🎬 You searched for</h2>
+                <div id="searched-movie-card" class="movie-row"></div>
+            </div>
+            <h2>Because you watched <span id="searched-movie-title" style="color:#f5c518;"></span></h2>
             <div id="recommendations" class="movie-row"></div>
         </div>
 
@@ -176,7 +222,6 @@
         const userEmailSpan = document.getElementById("user-email");
         const authMessage = document.getElementById("auth-message");
         const personalRecSection = document.getElementById("personal-recommendations-section");
-        const personalRecBox = document.getElementById("personal-recommendations");
 
         let currentUser = null;
 
@@ -344,12 +389,31 @@
 
         async function handleLogout() {
             const { error } = await supabaseClient.auth.signOut();
-            if (error) logDebug('Error logging out:', error);
-            else logDebug("Logged out successfully");
+            if (error) {
+                logDebug('Error logging out:', error);
+            } else {
+                logDebug("Logged out successfully");
+                window.location.reload(); // Force UI hard reset to guarantee everything clears visually
+            }
+        }
+
+        // Moves a section to the top of the main container (right after main search bar)
+        function bringToTop(sectionId) {
+            const searchBar = document.getElementById('main-search-container');
+            const section = document.getElementById(sectionId);
+            // Insert the section right after the main search bar — never inside the modal
+            searchBar.insertAdjacentElement('afterend', section);
+            // Smooth scroll to bring it into view
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         async function loadPersonalRecommendations() {
             if (!currentUser) return;
+
+            // Trigger visual Loading State (Global Popup overlay)
+            const btn = document.querySelector('button[onclick="loadPersonalRecommendations()"]');
+            btn.disabled = true;
+            document.getElementById("global-spinner-overlay").style.display = "flex";
 
             const { data: { session } } = await supabaseClient.auth.getSession();
             const token = session.access_token;
@@ -364,16 +428,32 @@
                 if (!response.ok) throw new Error('Failed to fetch recommendations');
 
                 const data = await response.json();
-                const movies = data.recommendations;
+                const svd_movies = data.svd_recommendations;
+                const ncf_movies = data.ncf_recommendations;
 
                 personalRecSection.style.display = "block";
-                personalRecBox.innerHTML = "";
-                movies.forEach(movie => {
-                    personalRecBox.appendChild(createMovieCard(movie));
+                bringToTop("personal-recommendations-section");
+                
+                const svdBox = document.getElementById("svd-recommendations");
+                const ncfBox = document.getElementById("ncf-recommendations");
+                
+                svdBox.innerHTML = "";
+                svd_movies.forEach(movie => {
+                    svdBox.appendChild(createMovieCard(movie));
+                });
+                
+                ncfBox.innerHTML = "";
+                ncf_movies.forEach(movie => {
+                    ncfBox.appendChild(createMovieCard(movie));
                 });
             } catch (error) {
                 console.error(error);
-                alert("Error fetching personal recommendations.");
+                alert("Error fetching personal recommendations: " + error.message);
+            } finally {
+                // Restore Button and Disable Spinner Modal
+                const btn = document.querySelector('button[onclick="loadPersonalRecommendations()"]');
+                btn.disabled = false;
+                document.getElementById("global-spinner-overlay").style.display = "none";
             }
         }
 
@@ -395,7 +475,7 @@
                 return;
             }
 
-            const response = await fetch(`/search?query=${query}`);
+            const response = await fetch(`/search/simple?query=${query}`);
             const movies = await response.json();
 
             suggestionsBox.innerHTML = "";
@@ -405,26 +485,48 @@
                 div.classList.add("suggestion-item");
                 div.innerText = movie.title;
 
-                div.onclick = () => {
+                // Use onmousedown instead of onclick to beat the input blur event
+                // (blur fires first on click and collapses the dropdown before onclick can fire)
+                div.onmousedown = (e) => {
+                    e.preventDefault(); // prevent input losing focus
                     searchInput.value = movie.title;
                     suggestionsBox.innerHTML = "";
-                    loadRecommendations(movie.movieId);
+                    loadRecommendations(movie.movieId, movie.title);
                 };
 
                 suggestionsBox.appendChild(div);
             });
         });
 
-        async function loadRecommendations(movieId) {
+        async function loadRecommendations(movieId, movieTitle) {
+            const recSection = document.getElementById("recommendations-section");
+            recSection.style.display = "block";
+            bringToTop("recommendations-section");
+            document.getElementById("recommendations").innerHTML = "";
+            document.getElementById("searched-movie-card").innerHTML = "";
+            document.getElementById("searched-movie-title").innerText = movieTitle || "";
+
+            // 1. Fetch and display the searched movie itself using the enriched endpoint
+            try {
+                const enrichedRes = await fetch(`/search?query=${encodeURIComponent(movieTitle)}`);
+                const enrichedMovies = await enrichedRes.json();
+                // Pick the exact match by movieId
+                const match = enrichedMovies.find(m => m.movieId === movieId) || enrichedMovies[0];
+                if (match) {
+                    document.getElementById("searched-movie-card").appendChild(createMovieCard(match));
+                }
+            } catch (e) {
+                console.error("Could not fetch searched movie details", e);
+            }
+
+            // 2. Fetch similar recommendations
             const response = await fetch(`/recommend/similar/${movieId}`);
             const data = await response.json();
             const movies = data.recommendations;
 
-            recommendationsSection.style.display = "block";
-            recommendationsBox.innerHTML = "";
-
+            const recBox = document.getElementById("recommendations");
             movies.forEach(movie => {
-                recommendationsBox.appendChild(createMovieCard(movie));
+                recBox.appendChild(createMovieCard(movie));
             });
         }
 
@@ -503,11 +605,18 @@
                         }
                     }
                 } else {
-                    const errorData = await response.json();
-                    alert("Error saving rating: " + (errorData.detail || 'Unknown error'));
+                    let errorMessage = "Unknown server error";
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.detail || errorData.message || errorMessage;
+                    } catch (e) {
+                        errorMessage = "Internal Server Error natively triggered!";
+                    }
+                    alert("Error saving rating: " + errorMessage);
                 }
             } catch (err) {
                 console.error("Failed to submit rating", err);
+                alert("Critical API Crash: " + err.message);
             }
         }
     </script>

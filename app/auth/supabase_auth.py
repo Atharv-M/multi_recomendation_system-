@@ -23,3 +23,23 @@ def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=f"Invalid or expired Supabase Token: {str(e)}"
         )
+
+def get_current_user_object(
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    token = credentials.credentials
+    try:
+        user_response = supabase.auth.get_user(jwt=token)
+        if user_response and user_response.user:
+            return user_response.user
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired Supabase Token"
+            )
+    except Exception as e:
+        print(f"Supabase Auth Error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid or expired Supabase Token: {str(e)}"
+        )

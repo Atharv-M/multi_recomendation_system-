@@ -12,4 +12,8 @@ class RecommendationResponse(BaseModel):
 
 class RecommendationList(BaseModel):
     recommendations: List[RecommendationResponse]
+
+class DualRecommendationList(BaseModel):
+    svd_recommendations: List[RecommendationResponse]
+    ncf_recommendations: List[RecommendationResponse]
     
