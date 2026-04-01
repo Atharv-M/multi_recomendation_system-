@@ -41,7 +41,7 @@ class PopularityRecommender():
 
         # Weighted Rating formula 
         df["popularity_score"]=(
-            (df["rating_count"]/df["rating_count"]+m)*df["avg_rating"]
+            (df["rating_count"]/(df["rating_count"]+m))*df["avg_rating"]
             +(m/(df["rating_count"]+m))*C
         )
 

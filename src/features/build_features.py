@@ -82,8 +82,8 @@ def build_features():
     first apply log transformation to the rating_count column to reduce skewness.
     then apply standard scaling to the avg_rating and rating_count_log columns.
     """
-    df["avg_rating"].fillna(0,inplace=True)
-    df["rating_count"].fillna(0,inplace=True) ## Helps in Cosine similarity Calculation 
+    df["avg_rating"] = df["avg_rating"].fillna(0)
+    df["rating_count"] = df["rating_count"].fillna(0)  ## Helps in Cosine similarity Calculation
 
     logger.info("Scaling Numeric Features")
     df["rating_count_log"] = np.log1p(df["rating_count"])

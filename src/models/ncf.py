@@ -262,7 +262,14 @@ class NeuralCollaborativeRecommender:
         t_arr[0:n_train] = t_scaled
         
         train_dataset = HybridImplicitDataset(u_arr, i_arr, t_arr, y_arr, movie_genre_matrix, movie_tags_matrix)
-        train_loader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        train_loader = DataLoader(
+            train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=4,          # 4 CPU workers pre-fetch batches in parallel → GPU never idles
+            pin_memory=True,        # pins RAM for lightning-fast CPU→GPU transfer
+            persistent_workers=True # workers stay alive between epochs (no respawn overhead)
+        )
         
         num_genres = len(self.mlb.classes_)
         num_tags = len(self.tag2idx)
@@ -484,16 +491,26 @@ class NeuralCollaborativeRecommender:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
     logger.info("Starting Dedicated NCF Training Script...")
-    
-    logger.info("Loading Raw MovieLens Dataset...")
-    ratings = pd.read_csv(RATINGS_DIR)
-    
-    logger.info(f"Loaded {len(ratings)} raw interactions. Initiating FULL dataset training.")
-    
-    # We want to train on EVERYTHING here so it's ready for production serving!
+
+    import sys
+    use_full = "--use-full-data" in sys.argv
+
+    if use_full:
+        train_path = RATINGS_DIR  # full rating.csv — for production after evaluation
+        logger.info("Mode: FULL DATA (production retrain after evaluation)")
+    else:
+        train_path = DATA_DIR / "processed" / "train_ratings.csv"  # train split only
+        logger.info("Mode: TRAIN SPLIT ONLY (for honest evaluation)")
+
+    logger.info(f"Loading ratings from {train_path}...")
+    ratings = pd.read_csv(train_path)
+
+    logger.info(f"Loaded {len(ratings):,} interactions. Starting training...")
+
     recommender = NeuralCollaborativeRecommender(n_epochs=5, batch_size=4096)
     recommender.fit(ratings)
-    
-    logger.info("Natively executing Model Serialization Phase.")
+
+    logger.info("Saving model weights and mappings...")
     recommender.save()
-    logger.info("God-Tier NeuMF Model weights flawlessly stored in project persistent volume.")
+    logger.info("NCF training complete — model saved successfully.")
+

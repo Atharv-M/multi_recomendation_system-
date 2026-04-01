@@ -10,43 +10,62 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
-def build_topk_similarity(top_k: int=20):
-        
-        logger.info("Loading movies Dataset")
-        movies_df = joblib.load(MOVIES_DF_PKL_PATH)
-        movie_features = joblib.load(MOVIE_FEATURES_PATH)
+def build_topk_similarity(top_k: int = 20, chunk_size: int = 2000):
+    """
+    Computes top-K similar movies using chunked cosine similarity.
+    Processes `chunk_size` movies at a time instead of the full N×N matrix,
+    so RAM usage stays at O(chunk_size × N) regardless of dataset size.
+    Safe for 87K+ movies on a 16GB machine.
+    """
+    logger.info("Loading movies Dataset")
+    movies_df     = joblib.load(MOVIES_DF_PKL_PATH)
+    movie_features = joblib.load(MOVIE_FEATURES_PATH)
+    n_movies       = movie_features.shape[0]
+    movie_ids      = movies_df["movieId"].tolist()
 
-        logger.info("Calculating Cosine Similarity")
-        logger.info("Computing Cosine Similarity Matrix (temporary full Matrix)")
-        cosine_sim = cosine_similarity(movie_features,movie_features)
+    logger.info(f"Computing chunked Top-{top_k} similarity for {n_movies:,} movies "
+                f"(chunk_size={chunk_size}, RAM-safe)")
 
+    # Normalize feature rows once so dot-product == cosine similarity
+    from sklearn.preprocessing import normalize
+    from scipy.sparse import issparse
+    if issparse(movie_features):
+        features_norm = normalize(movie_features, norm="l2")
+    else:
+        features_norm = normalize(np.array(movie_features), norm="l2")
 
-        logger.info("Building Top K Similarity Matrix")
-        topk_similarity ={}
+    topk_similarity = {}
 
-        movie_ids = movies_df["movieId"].tolist()
+    for start in tqdm(range(0, n_movies, chunk_size), desc="Chunked similarity"):
+        end        = min(start + chunk_size, n_movies)
+        chunk      = features_norm[start:end]          # shape: (chunk_size, F)
 
-        for idx in tqdm(range(len(movie_ids))):
-            sim_scores = list(enumerate(cosine_sim[idx]))
-            sim_scores =[(i,s) for i,s in sim_scores if i!=idx]
-            #Sort in decesending order based on similarity scores
-            sim_scores.sort(key=lambda x:x[1], reverse=True)
-            # Picking only topk similar movies 
-            top_k_similarity =sim_scores[:top_k]
+        # Dot product of chunk against ALL movies → cosine sim matrix (chunk_size × N)
+        if issparse(chunk):
+            sim_chunk = (chunk @ features_norm.T).toarray()
+        else:
+            sim_chunk = chunk @ features_norm.T        # numpy matmul
 
-            topk_similarity[movie_ids[idx]] = [(movie_ids[i], float(score)) for i , score in top_k_similarity] 
+        for local_idx in range(end - start):
+            global_idx = start + local_idx
+            sim_row    = sim_chunk[local_idx]          # similarity to all N movies
 
-        sim_save_path = CONTENT_MODEL_PATH / "topk_movie_similarity.joblib"
-        logger.info("Saving the Top K Similarity Matrix")
-        joblib.dump(topk_similarity, sim_save_path)
-        CONTENT_MODEL_PATH.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Top K Similarity Matrix saved to {sim_save_path}")
-        
-        # Free Memory explicitly 
-        del cosine_sim
-        del movie_features
+            # Exclude self, get top-K indices
+            sim_row[global_idx] = -1                   # mask self
+            top_indices = np.argpartition(sim_row, -top_k)[-top_k:]
+            top_indices = top_indices[np.argsort(sim_row[top_indices])[::-1]]
 
-        logger.info("Full Cosine Matrix Deleted from memory") 
+            topk_similarity[movie_ids[global_idx]] = [
+                (movie_ids[i], float(sim_row[i])) for i in top_indices
+            ]
+
+        del sim_chunk   # free chunk RAM immediately
+
+    sim_save_path = CONTENT_MODEL_PATH / "topk_movie_similarity.joblib"
+    CONTENT_MODEL_PATH.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Saving Top-{top_k} Similarity Matrix...")
+    joblib.dump(topk_similarity, sim_save_path)
+    logger.info(f"Saved to {sim_save_path}")
 
 class ContentBasedRecommender:
     def __init__(self):

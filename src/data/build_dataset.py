@@ -13,12 +13,24 @@ def load_data():
     """Load the raw data from the raw data directory"""
     logger.info("Loading raw datasets")
     movies = pd.read_csv(RAW_DATA_DIR / "movie.csv")
-    ratings =pd.read_csv(RAW_DATA_DIR / "rating.csv")
-    tags = pd.read_csv(RAW_DATA_DIR/"tag.csv")
-    links = pd.read_csv(RAW_DATA_DIR /"link.csv")
-    genome_tags = pd.read_csv(RAW_DATA_DIR /"genome_tags.csv")
-    genome_scores = pd.read_csv(RAW_DATA_DIR /"genome_scores.csv")
-    return movies,ratings,tags,links,genome_tags,genome_scores
+    ratings = pd.read_csv(RAW_DATA_DIR / "rating.csv")
+    tags = pd.read_csv(RAW_DATA_DIR / "tag.csv")
+    links = pd.read_csv(RAW_DATA_DIR / "link.csv")
+
+    # Genome files only exist in MovieLens 20M, not ml-32m — skip gracefully
+    genome_tags_path = RAW_DATA_DIR / "genome_tags.csv"
+    genome_scores_path = RAW_DATA_DIR / "genome_scores.csv"
+    if genome_tags_path.exists() and genome_scores_path.exists():
+        genome_tags = pd.read_csv(genome_tags_path)
+        genome_scores = pd.read_csv(genome_scores_path)
+        logger.info("Genome files found and loaded.")
+    else:
+        logger.warning("Genome files not found (ml-32m dataset) — skipping genome tags. NCF is unaffected.")
+        genome_tags = pd.DataFrame(columns=["tagId", "tag"])
+        genome_scores = pd.DataFrame(columns=["movieId", "tagId", "relevance"])
+
+    return movies, ratings, tags, links, genome_tags, genome_scores
+
 
 ## Rating Aggregation 
 """ We need to Aggregate the Ratings as it have one to many Relation in Datasets"""
@@ -39,6 +51,9 @@ def aggregate_user_tags(tags):
 ## Genome Tags Preprocessing 
 def prcess_genome_data(genome_scores, genome_tags, threshold=GENOME_SCORE_THRESHOLD):
     logger.info("processing genome tag relevance data ")
+    if genome_scores.empty or genome_tags.empty:
+        logger.warning("Genome data is empty — returning empty genome_tags column.")
+        return pd.DataFrame(columns=["movieId", "genome_tags"])
     genome = genome_scores.merge(
         genome_tags,
         on = "tagId",
@@ -51,7 +66,7 @@ def prcess_genome_data(genome_scores, genome_tags, threshold=GENOME_SCORE_THRESH
 
 def build_master_dataset():
     logger.info("Building MAster Dataset")
-    movies, ratings, tags,links, genome_tags, genome_scores = load_data()
+    movies, ratings, tags, links, genome_tags, genome_scores = load_data()
     rating_agg = aggregate_ratings(ratings)
     tag_add = aggregate_user_tags(tags)
     genome_agg = prcess_genome_data(genome_scores, genome_tags)
@@ -66,10 +81,10 @@ def build_master_dataset():
     )
     logger.info("Handling missing Values")
 
-    master_df["avg_rating"].fillna(0, inplace=True)
-    master_df["rating_count"].fillna(0,inplace=True)
-    master_df["tag"].fillna("", inplace=True)
-    master_df["genome_tags"].fillna("",inplace=True)
+    master_df["avg_rating"]   = master_df["avg_rating"].fillna(0)
+    master_df["rating_count"] = master_df["rating_count"].fillna(0)
+    master_df["tag"]          = master_df["tag"].fillna("")
+    master_df["genome_tags"]  = master_df["genome_tags"].fillna("")
 
     master_df["genres"] = master_df["genres"].str.replace("|", " ", regex=False)
 
