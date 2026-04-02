@@ -203,7 +203,7 @@ class NeuralCollaborativeRecommender:
         ).to_dict()
         
         n_train = len(train_df)
-        n_total = n_train * 5 
+        n_total = n_train * 3  # 1 positive + 2 negatives (4 caused OOM on Kaggle's 30GB limit)
         
         u_arr = np.empty(n_total, dtype=np.int32)
         i_arr = np.empty(n_total, dtype=np.int32)
@@ -218,7 +218,7 @@ class NeuralCollaborativeRecommender:
         
         num_items = len(all_items)
         idx = n_train
-        random_negatives = np.random.randint(0, num_items, size=(n_train, 4))
+        random_negatives = np.random.randint(0, num_items, size=(n_train, 2))
         user_ids_original = train_df['userId'].values
         
         logger.info("Hashing Negative Samples to avoid overlapping existing interactions...")
@@ -229,12 +229,12 @@ class NeuralCollaborativeRecommender:
             
             negs = random_negatives[i]
             while any(n in interacted for n in negs):
-                negs = np.random.randint(0, num_items, size=4)
+                negs = np.random.randint(0, num_items, size=2)
                 
-            u_arr[idx:idx+4] = users_mapped[i]
-            i_arr[idx:idx+4] = negs
-            y_arr[idx:idx+4] = 0.0
-            idx += 4
+            u_arr[idx:idx+2] = users_mapped[i]
+            i_arr[idx:idx+2] = negs
+            y_arr[idx:idx+2] = 0.0
+            idx += 2
 
         logger.info("Initializing O(1) Memory-Efficient Dictionary Arrays...")
         num_genres = len(self.mlb.classes_)
@@ -262,13 +262,16 @@ class NeuralCollaborativeRecommender:
         t_arr[0:n_train] = t_scaled
         
         train_dataset = HybridImplicitDataset(u_arr, i_arr, t_arr, y_arr, movie_genre_matrix, movie_tags_matrix)
+
+        # num_workers=0: dataset is pure pre-computed in-memory tensors.
+        # __getitem__ = tensor[idx] — instant, zero disk I/O.
+        # workers=4 gave ZERO speed benefit but forked 4×3.8GB RAM copies → OOM crash.
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            num_workers=4,          # 4 CPU workers pre-fetch batches in parallel → GPU never idles
-            pin_memory=True,        # pins RAM for lightning-fast CPU→GPU transfer
-            persistent_workers=True # workers stay alive between epochs (no respawn overhead)
+            num_workers=0,   # main process only — no fork, no RAM explosion
+            pin_memory=True, # still pins RAM for fast CPU→GPU transfer
         )
         
         num_genres = len(self.mlb.classes_)
