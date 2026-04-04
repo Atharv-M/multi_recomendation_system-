@@ -113,7 +113,7 @@ class HybridNeuMFModel(nn.Module):
 # RECOMMENDER WRAPPER
 
 class NeuralCollaborativeRecommender:
-    def __init__(self, mf_dim=16, mlp_dim=32, tag_dim=16, n_epochs=5, batch_size=4096, lr=0.001):
+    def __init__(self, mf_dim=16, mlp_dim=32, tag_dim=16, n_epochs=6, batch_size=4096, lr=0.001):
         self.mf_dim = mf_dim
         self.mlp_dim = mlp_dim
         self.tag_dim = tag_dim
@@ -203,8 +203,8 @@ class NeuralCollaborativeRecommender:
         ).to_dict()
         
         n_train = len(train_df)
-        n_total = n_train * 3  # 1 positive + 2 negatives (4 caused OOM on Kaggle's 30GB limit)
-        
+        n_total = n_train * 3  # 1 positive + 2 negatives (fits Kaggle 30GB RAM safe limit)
+
         u_arr = np.empty(n_total, dtype=np.int32)
         i_arr = np.empty(n_total, dtype=np.int32)
         y_arr = np.empty(n_total, dtype=np.float32)
