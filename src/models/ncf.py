@@ -15,15 +15,12 @@ logger = logging.getLogger(__name__)
 TAGS_DIR = DATA_DIR / "raw" / "tag.csv"
 
 class HybridImplicitDataset(Dataset):
-    def __init__(self, users, items, timestamps, labels, movie_genre_matrix, movie_tags_matrix):
+    def __init__(self, users, items, labels, movie_genre_matrix, movie_tags_matrix):
         self.users = torch.tensor(users, dtype=torch.long)
         self.items = torch.tensor(items, dtype=torch.long)
-        self.timestamps = torch.tensor(timestamps, dtype=torch.float32)
         self.labels = torch.tensor(labels, dtype=torch.float32)
-        
-        # Tiny Lookup Dictionaries
         self.movie_genre_matrix = torch.tensor(movie_genre_matrix, dtype=torch.float32)
-        self.movie_tags_matrix = torch.tensor(movie_tags_matrix, dtype=torch.long)
+        self.movie_tags_matrix  = torch.tensor(movie_tags_matrix,  dtype=torch.long)
 
     def __len__(self):
         return len(self.users)
@@ -31,7 +28,7 @@ class HybridImplicitDataset(Dataset):
     def __getitem__(self, idx):
         u = self.users[idx]
         i = self.items[idx]
-        return u, i, self.movie_genre_matrix[i], self.timestamps[idx], self.movie_tags_matrix[i], self.labels[idx]
+        return u, i, self.movie_genre_matrix[i], self.movie_tags_matrix[i], self.labels[idx]
 
 # HYBRID NeuMF MODEL
 
@@ -51,13 +48,10 @@ class HybridNeuMFModel(nn.Module):
         self.tag_embedding = nn.EmbeddingBag(num_embeddings=num_tags, embedding_dim=tag_dim, mode='mean', padding_idx=0)
         
         # Genres
-        self.genre_layer = nn.Sequential(
-            nn.Linear(num_genres, 16),
-            nn.ReLU()
-        )
+        self.genre_layer = nn.Sequential(nn.Linear(num_genres, 16), nn.ReLU())
         
-        # Input = user_mlp(32) + item_mlp(32) + genre(16) + tag(16) + timestamp(1) = 97
-        input_dim = mlp_dim * 2 + 16 + tag_dim + 1
+        # Input = user_mlp(32) + item_mlp(32) + genre(16) + tag(16)
+        input_dim = mlp_dim * 2 + 16 + tag_dim
         layers = []
         for hidden_dim in hidden_layers:
             layers.append(nn.Linear(input_dim, hidden_dim))
@@ -88,27 +82,18 @@ class HybridNeuMFModel(nn.Module):
                 nn.init.xavier_uniform_(m.weight)
         nn.init.kaiming_uniform_(self.prediction_layer[0].weight, nonlinearity='sigmoid')
 
-    def forward(self, user_indices, item_indices, genres, timestamps, tags):
-        # 1. GMF Brain
-        user_embedding_mf = self.embedding_user_mf(user_indices)
-        item_embedding_mf = self.embedding_item_mf(item_indices)
-        mf_vector = torch.mul(user_embedding_mf, item_embedding_mf) 
+    def forward(self, user_indices, item_indices, genres, tags):
+        mf_vector  = torch.mul(self.embedding_user_mf(user_indices), self.embedding_item_mf(item_indices))
         
-        # 2. MLP Content Brain
-        user_embedding_mlp = self.embedding_user_mlp(user_indices)
-        item_embedding_mlp = self.embedding_item_mlp(item_indices)
-        
-        tag_vector = self.tag_embedding(tags)
+        tag_vector  = self.tag_embedding(tags)
         genre_vector = self.genre_layer(genres)
-        time_vector = timestamps.unsqueeze(1)
+
+        mlp_vector   = torch.cat([self.embedding_user_mlp(user_indices),
+                                   self.embedding_item_mlp(item_indices),
+                                   genre_vector, tag_vector], dim=1)
         
-        mlp_vector = torch.cat([user_embedding_mlp, item_embedding_mlp, genre_vector, time_vector, tag_vector], dim=1)
         mlp_vector = self.mlp(mlp_vector)
-        
-        # 3. Concatenate and predict
-        neumf_vector = torch.cat([mf_vector, mlp_vector], dim=1)
-        prediction = self.prediction_layer(neumf_vector)
-        return prediction.squeeze(1)
+        return self.prediction_layer(torch.cat([mf_vector, mlp_vector], dim=1)).squeeze(1)
 
 # RECOMMENDER WRAPPER
 
@@ -135,7 +120,6 @@ class NeuralCollaborativeRecommender:
         self.max_tags_per_movie = 20
         
         self.mlb = MultiLabelBinarizer()
-        self.time_scaler = MinMaxScaler()
         
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 
@@ -184,11 +168,6 @@ class NeuralCollaborativeRecommender:
         merged = train_df.merge(movies_df[['movieId', 'genres']], on='movieId', how='left')
         merged['genres'] = merged['genres'].fillna("Unknown").str.split('|')
         self.mlb.fit(merged['genres'])
-        
-        if 'timestamp' in train_df.columns:
-            # Safely coerce timestamps so we don't accidentally drop NA rows and break tensor shapes!
-            numeric_ts = pd.to_numeric(train_df['timestamp'], errors='coerce').fillna(0).astype(np.float32)
-            self.time_scaler.fit(numeric_ts.values.reshape(-1, 1))
             
         all_users = train_df['userId'].astype(str).unique()
         all_items = train_df['movieId'].astype(int).unique()
@@ -203,7 +182,7 @@ class NeuralCollaborativeRecommender:
         ).to_dict()
         
         n_train = len(train_df)
-        n_total = n_train * 3  # 1 positive + 2 negatives (fits Kaggle 30GB RAM safe limit)
+        n_total = n_train * 3
 
         u_arr = np.empty(n_total, dtype=np.int32)
         i_arr = np.empty(n_total, dtype=np.int32)
@@ -249,33 +228,18 @@ class NeuralCollaborativeRecommender:
         
         default_pad = [0] * self.max_tags_per_movie
         for item_idx, m_id in self.idx2item.items():
-            movie_tags_matrix[item_idx] = self.movie_tags.get(m_id, default_pad)
+            movie_tags_matrix[item_idx]  = self.movie_tags.get(m_id, default_pad)
             movie_genre_matrix[item_idx] = m_id_to_genre.get(m_id, np.zeros(num_genres, dtype=np.float32))
         
-        if 'timestamp' in train_df.columns:
-            numeric_ts_pos = pd.to_numeric(train_df['timestamp'], errors='coerce').fillna(0).astype(np.float32)
-            t_scaled = self.time_scaler.transform(numeric_ts_pos.values.reshape(-1, 1)).flatten()
-        else:
-            t_scaled = np.zeros(n_train)
-            
-        t_arr = np.zeros(n_total, dtype=np.float32)
-        t_arr[0:n_train] = t_scaled
-        
-        train_dataset = HybridImplicitDataset(u_arr, i_arr, t_arr, y_arr, movie_genre_matrix, movie_tags_matrix)
+        train_dataset = HybridImplicitDataset(u_arr, i_arr, y_arr, movie_genre_matrix, movie_tags_matrix)
 
-        # num_workers=0: dataset is pure pre-computed in-memory tensors.
-        # __getitem__ = tensor[idx] — instant, zero disk I/O.
-        # workers=4 gave ZERO speed benefit but forked 4×3.8GB RAM copies → OOM crash.
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
-            num_workers=0,   # main process only — no fork, no RAM explosion
-            pin_memory=True, # still pins RAM for fast CPU→GPU transfer
+            num_workers=0,
+            pin_memory=True,
         )
-        
-        num_genres = len(self.mlb.classes_)
-        num_tags = len(self.tag2idx)
         
         self.model = HybridNeuMFModel(len(all_users), len(all_items), num_genres, num_tags, 
                                       self.mf_dim, self.mlp_dim, self.tag_dim).to(self.device)
@@ -289,13 +253,16 @@ class NeuralCollaborativeRecommender:
         for epoch in range(self.n_epochs):
             self.model.train()
             total_loss = 0
-            for batch_u, batch_i, batch_g, batch_t, batch_tg, batch_y in tqdm(train_loader, desc=f"Epoch {epoch+1}"):
-                batch_u, batch_i = batch_u.to(self.device), batch_i.to(self.device)
-                batch_g, batch_t = batch_g.to(self.device), batch_t.to(self.device)
-                batch_tg, batch_y = batch_tg.to(self.device), batch_y.to(self.device)
+            for batch_u, batch_i, batch_g, batch_tg, batch_y in tqdm(train_loader, desc=f"Epoch {epoch+1}/{self.n_epochs}"):
+                batch_u  = batch_u.to(self.device,  non_blocking=True)
+                batch_i  = batch_i.to(self.device,  non_blocking=True)
+                batch_g  = batch_g.to(self.device,  non_blocking=True)
+                batch_tg = batch_tg.to(self.device, non_blocking=True)
+                batch_y  = batch_y.to(self.device,  non_blocking=True)
                 
                 optimizer.zero_grad()
-                preds = self.model(batch_u, batch_i, batch_g, batch_t, batch_tg)
+                
+                preds = self.model(batch_u, batch_i, batch_g, batch_tg)
                 loss = criterion(preds, batch_y)
                 loss.backward()
                 optimizer.step()
@@ -309,18 +276,11 @@ class NeuralCollaborativeRecommender:
 
         NCF_MODEL_PATH.mkdir(parents=True, exist_ok=True)
         mappings = {
-            'user2idx': self.user2idx,
-            'idx2user': self.idx2user,
-            'item2idx': self.item2idx,
-            'idx2item': self.idx2item,
-            'mf_dim': self.mf_dim,
-            'mlp_dim': self.mlp_dim,
-            'tag_dim': self.tag_dim,
-            'mlb': self.mlb,
-            'time_scaler': self.time_scaler,
-            'tag2idx': self.tag2idx,
-            'idx2tag': self.idx2tag,
-            'movie_tags': self.movie_tags
+            'user2idx': self.user2idx, 'idx2user': self.idx2user,
+            'item2idx': self.item2idx, 'idx2item': self.idx2item,
+            'mf_dim': self.mf_dim, 'mlp_dim': self.mlp_dim, 'tag_dim': self.tag_dim,
+            'mlb': self.mlb, 
+            'tag2idx': self.tag2idx, 'idx2tag': self.idx2tag, 'movie_tags': self.movie_tags
         }
         joblib.dump(mappings, NCF_MODEL_PATH / "neumf_mappings.pkl")
         torch.save(self.model.state_dict(), NCF_MODEL_PATH / "neumf_weights.pt")
@@ -335,10 +295,9 @@ class NeuralCollaborativeRecommender:
         self.idx2item = mappings['idx2item']
         self.mf_dim = mappings['mf_dim']
         self.mlp_dim = mappings['mlp_dim']
-        self.tag_dim = mappings['tag_dim']
+        self.tag_dim = mappings.get('tag_dim', 16)
         self.mlb = mappings['mlb']
-        self.time_scaler = mappings['time_scaler']
-        self.tag2idx = mappings['tag2idx']
+        self.tag2idx = mappings.get('tag2idx', {"<PAD>": 0})
         self.idx2tag = mappings['idx2tag']
         self.movie_tags = mappings['movie_tags']
         
@@ -359,39 +318,43 @@ class NeuralCollaborativeRecommender:
             
         logger.info(f"Initiating surgical Deep Learning Fine-Tuning for {len(new_ratings_df)} Database interactions...")
         
-        # 1. Map new UUIDs to __GUEST__ slots structurally
         unique_new_users = new_ratings_df['userId'].astype(str).unique()
-        users_injected = 0
-        for u in unique_new_users:
-            if u not in self.user2idx:
-                guest_keys = [k for k in self.user2idx.keys() if str(k).startswith("__GUEST_")]
-                if not guest_keys:
-                    logger.error("FATAL: Out of __GUEST__ padding slots! Cannot inject new users.")
-                    continue
-                available_guest = guest_keys[0]
-                idx = self.user2idx.pop(available_guest) # Remove guest name
-                # Overwrite coordinate identically!
+        new_users_to_add = [u for u in unique_new_users if u not in self.user2idx]
+        
+        if new_users_to_add:
+            logger.info(f"Dynamically extending PyTorch User Embeddings by {len(new_users_to_add)} slots for brand new signups...")
+            old_num_users = len(self.user2idx)
+            new_num_users = old_num_users + len(new_users_to_add)
+            
+            # Formally assign their index coordinates
+            for u in new_users_to_add:
+                idx = len(self.user2idx)
                 self.user2idx[u] = idx
                 self.idx2user[idx] = u
-                logger.info(f"Surgically assigned new user UUID {u} to Neural Tensor Row {idx}")
-                users_injected += 1
                 
-        # 2. Extract Valid Rows
-        users_mapped = []
-        items_mapped = []
-        for index, row in new_ratings_df.iterrows():
-            u_str = str(row['userId'])
-            m_id = int(row['movieId'])
-            if u_str in self.user2idx and m_id in self.item2idx:
-                users_mapped.append(self.user2idx[u_str])
-                items_mapped.append(self.item2idx[m_id])
-                
+            # Reconstruct the Graph Dimensions physically
+            old_mf_weight = self.model.embedding_user_mf.weight.data
+            new_mf_emb = nn.Embedding(new_num_users, self.mf_dim).to(self.device)
+            nn.init.normal_(new_mf_emb.weight, std=0.01)
+            new_mf_emb.weight.data[:old_num_users] = old_mf_weight
+            self.model.embedding_user_mf = new_mf_emb
+            
+            old_mlp_weight = self.model.embedding_user_mlp.weight.data
+            new_mlp_emb = nn.Embedding(new_num_users, self.mlp_dim).to(self.device)
+            nn.init.normal_(new_mlp_emb.weight, std=0.01)
+            new_mlp_emb.weight.data[:old_num_users] = old_mlp_weight
+            self.model.embedding_user_mlp = new_mlp_emb
+            
+        valid_df = new_ratings_df[new_ratings_df['movieId'].astype(int).isin(self.item2idx)]
+        
+        users_mapped = valid_df['userId'].astype(str).map(self.user2idx).values
+        items_mapped = valid_df['movieId'].astype(int).map(self.item2idx).values
+        
         n_valid = len(users_mapped)
         if n_valid == 0:
             logger.info("No valid mappings for fine-tuning. Ignoring iteration.")
             return
             
-        # 3. Micro Negative Sampling
         n_total_valid = n_valid * 5
         u_arr = np.empty(n_total_valid, dtype=np.int32)
         i_arr = np.empty(n_total_valid, dtype=np.int32)
@@ -401,36 +364,32 @@ class NeuralCollaborativeRecommender:
         i_arr[0:n_valid] = items_mapped
         y_arr[0:n_valid] = 1.0
         
-        all_items_list = list(self.item2idx.values())
+        num_items = len(self.item2idx)
         idx_offset = n_valid
+        random_negatives = np.random.randint(0, num_items, size=(n_valid, 4))
+        
         for i in range(n_valid):
-            negs = np.random.choice(all_items_list, size=4, replace=False)
             u_arr[idx_offset:idx_offset+4] = users_mapped[i]
-            i_arr[idx_offset:idx_offset+4] = negs
+            i_arr[idx_offset:idx_offset+4] = random_negatives[i]
             y_arr[idx_offset:idx_offset+4] = 0.0
             idx_offset += 4
             
-        # 4. Deep Feature Extraction (Genres/Tags)
         items_df = pd.DataFrame({'movieId': [self.idx2item[i] for i in i_arr], 'item_idx': i_arr})
         items_df = items_df.merge(self.movies_df[['movieId', 'genres']], on='movieId', how='left')
         items_df['genres'] = items_df['genres'].fillna("Unknown").str.split('|')
         
         genres_encoded = self.mlb.transform(items_df['genres'])
-        timestamps_scaled = np.ones(len(items_df))
         
         default_pad = [0] * self.max_tags_per_movie
         tags_array = items_df['movieId'].map(lambda m: self.movie_tags.get(m, default_pad)).tolist()
         tags_np = np.array(tags_array)
         
-        # Deploy straight to GPU/CPU Ram Array limits bypassed!
         user_tensor = torch.tensor(u_arr, dtype=torch.long).to(self.device)
         item_tensor = torch.tensor(i_arr, dtype=torch.long).to(self.device)
         genre_tensor = torch.tensor(genres_encoded, dtype=torch.float32).to(self.device)
-        time_tensor = torch.tensor(timestamps_scaled, dtype=torch.float32).to(self.device)
         tag_tensor = torch.tensor(tags_np, dtype=torch.long).to(self.device)
         y_tensor = torch.tensor(y_arr, dtype=torch.float32).to(self.device)
         
-        # 5. Ignite the Optimizer Native Micro-Batch loop
         self.model.train()
         criterion = nn.BCELoss()
         optimizer = torch.optim.Adam(self.model.parameters(), lr=lr)
@@ -438,7 +397,7 @@ class NeuralCollaborativeRecommender:
         logger.info(f"Targeting Backpropagation on {n_total_valid} User Interactions...")
         for epoch in range(epochs):
             optimizer.zero_grad()
-            preds = self.model(user_tensor, item_tensor, genre_tensor, time_tensor, tag_tensor)
+            preds = self.model(user_tensor, item_tensor, genre_tensor, tag_tensor)
             loss = criterion(preds, y_tensor)
             loss.backward()
             optimizer.step()
@@ -446,7 +405,7 @@ class NeuralCollaborativeRecommender:
             if (epoch+1) % 5 == 0:
                 logger.info(f"FineTune Epoch {epoch+1}/{epochs} - Micro BCE Loss: {loss.item():.4f}")
                 
-        logger.info(f"God-Tier Fine-Tuning execution fully complete across {users_injected} New Sign-Ups!")
+        logger.info(f"God-Tier Fine-Tuning execution fully complete! Added {len(new_users_to_add)} New Sign-Ups. (Weights Saved & Active)")
 
 
     def recommend(self, user_id: str, top_k: int = 10):
@@ -467,8 +426,7 @@ class NeuralCollaborativeRecommender:
         items_df = items_df.merge(self.movies_df[['movieId', 'genres']], on='movieId', how='left')
         items_df['genres'] = items_df['genres'].fillna("Unknown").str.split('|')
         
-        genres_encoded = self.mlb.transform(items_df['genres'])
-        timestamps_scaled = np.ones(len(items_df)) 
+        genres_encoded = self.mlb.transform(items_df['genres']) 
         
         default_pad = [0] * self.max_tags_per_movie
         tags_array = items_df['movieId'].map(lambda m: self.movie_tags.get(m, default_pad)).tolist()
@@ -477,11 +435,10 @@ class NeuralCollaborativeRecommender:
         user_tensor = torch.tensor([user_idx] * len(all_item_indices), dtype=torch.long).to(self.device)
         item_tensor = torch.tensor(items_df['item_idx'].values, dtype=torch.long).to(self.device)
         genre_tensor = torch.tensor(genres_encoded, dtype=torch.float32).to(self.device)
-        time_tensor = torch.tensor(timestamps_scaled, dtype=torch.float32).to(self.device)
         tag_tensor = torch.tensor(tags_np, dtype=torch.long).to(self.device)
         
         with torch.no_grad():
-            predictions = self.model(user_tensor, item_tensor, genre_tensor, time_tensor, tag_tensor).cpu().numpy()
+            predictions = self.model(user_tensor, item_tensor, genre_tensor, tag_tensor).cpu().numpy()
             
         item_preds = list(zip(all_item_ids, predictions))
         item_preds.sort(key=lambda x: x[1], reverse=True) 

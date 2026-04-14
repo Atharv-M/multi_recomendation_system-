@@ -58,7 +58,7 @@ class CollaborativeRecommender:
         ratings = pd.read_csv(
             ratings_path,
             usecols=["userId", "movieId", "rating"],
-            dtype={"userId": "int32", "movieId": "int32", "rating": "float32"}
+            dtype={"userId": str, "movieId": "int32", "rating": "float32"}
         )
         logger.info(f"Loaded {len(ratings):,} ratings.")
 
@@ -175,11 +175,10 @@ class CollaborativeRecommender:
         seen_items = self.user_seen_items.get(user_idx, np.array([], dtype=np.int32))
         n_items    = len(self.idx2item)
 
-        # In implicit 0.7+: user_factors shape = (n_users, factors)
-        #                    item_factors shape = (n_items, factors)
-        # Scores = user vector · all item vectors
-        user_vector = self.model.user_factors[user_idx]        # (factors,)
-        scores      = self.model.item_factors[:n_items] @ user_vector  # (n_items,)
+        # In implicit, passing item_user_matrix means .item_factors holds the USERS (columns),
+        # and .user_factors holds the ITEMS (rows). The factors are mathematically inverted.
+        user_vector = self.model.item_factors[user_idx]        # (factors,)
+        scores      = self.model.user_factors[:n_items] @ user_vector  # (n_items,)
 
         # Mask already-seen items so they can't be recommended again
         scores[seen_items] = -np.inf

@@ -1,0 +1,31 @@
+# Floating YouTube Trailer Ecosystem
+
+We already have access to your `TMDB_API_KEY` stored in your backend configuration. While OMDB handles plots and ratings, we can dynamically query TMDB in real-time to find official YouTube trailer keys for each movie recommended.
+
+## User Review Required
+The proposed UI will feature a **"▶ Trailer"** button directly on the movie cards. Clicking it will pop up a cinematic, dark-themed floating modal overlay containing an embedded YouTube iframe that streams the trailer. Clicking outside the modal will instantly destroy the iframe to stop the audio. Do you approve of this design approach?
+
+## Proposed Changes
+
+### `app/schemas.py`
+#### [MODIFY] `app/schemas.py`
+- Formally inject a `youtube_trailer_id: Optional[str] = None` field into the `RecommendationResponse` validation schema so FastAPI transmits it to the browser.
+
+### `app/utils/`
+#### [NEW] `app/utils/tmdb.py`
+- Create an asynchronous/cached helper function `get_trailer_id(tmdb_id: str)` that makes an HTTP `GET` to the official TMDB `/videos` endpoint and filters for `site == "YouTube"`.
+- Return the official YouTube ID hash string.
+
+#### [MODIFY] `app/utils/enrichment.py`
+- Extract mapping for `tmdbId` dynamically from `links_df` inside `enrich_movies()`.
+- Run the TMDB fetch logic in parallel alongside your OMDB logic.
+- Inject the `youtube_trailer_id` string directly into the returned movie object.
+
+### `app/templates/`
+#### [MODIFY] `app/templates/index.html`
+- **Frontend Logic:** Build an independent shadow-overlay modal (`#trailer-modal`) containing an intelligent `<iframe>`.
+- **UI Button:** Update `createMovieCard()` to dynamically append a glowing Play Trailer button next to the "Watch ↗" IMDB button if a trailer exists.
+- **Javascript:** Write a quick helper function `openTrailer(trailerId)` that populates the iframe URL to `https://www.youtube.com/embed/...` and unhides it. Writing `closeTrailer()` will blank out the source to smoothly cut off the audio player natively.
+
+## Verification Plan
+After writing the code, I will simply search for a massive blockbuster (e.g., "The Avengers" or "Sultan") to ensure a trailer ID populates on the backend JSON endpoint. Once verified, I'll alert you to click the new button natively in your browser!

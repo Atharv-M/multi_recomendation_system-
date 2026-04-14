@@ -9,6 +9,7 @@ class RecommendationResponse(BaseModel):
     rating: Optional[float] = None
     overview: Optional[str] = None
     imdb_link: Optional[str] = None
+    youtube_trailer_id: Optional[str] = None
 
 class RecommendationList(BaseModel):
     recommendations: List[RecommendationResponse]

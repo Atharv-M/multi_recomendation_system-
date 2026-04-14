@@ -1,5 +1,55 @@
-# Collaborative Filtering: scikit-surprise SVD vs implicit ALS
-### A Complete Technical Comparison & Migration Guide
+# Collaborative Filtering: Implicit ALS
+### Implementation Guide, Data Details & Comparison with the old scikit-surprise SVD
+
+---
+
+## 📦 Which Data Did We Use to Train ALS?
+
+This is the most important question — especially since we have **multiple CSV files** in the project.
+
+### ✅ ALS Trained on: `data/processed/train_ratings.csv`
+
+| Detail | Value |
+|---|---|
+| **File used** | `data/processed/train_ratings.csv` |
+| **Source dataset** | MovieLens 32M (ml-32m) — the full, latest release |
+| **Rows (ratings)** | **31,799,256** (31.8 million) |
+| **Users** | 200,948 unique users |
+| **Movies** | 84,333+ unique movies covered by ratings |
+| **Full movie catalog** | 87,585 movies (in `movie.csv`) |
+| **Why NOT `rating.csv`?** | `rating.csv` is 100% identical to `ratings.csv` — a copy of the raw full data. We use the **processed train split** for honest evaluation. |
+
+### 🔄 Two Training Modes (Selectable via Command Line)
+
+```bash
+# Mode 1 — Train split (DEFAULT, for honest evaluation)
+# Uses: data/processed/train_ratings.csv (31.8M ratings, 99.4% of full data)
+PYTHONPATH=. python src/models/collaborative_filtering.py
+
+# Mode 2 — Full data (for final production deployment, AFTER validation is done)
+# Uses: data/raw/rating.csv (32.0M ratings, 100% of data — includes the held-out 200K)
+PYTHONPATH=. python src/models/collaborative_filtering.py --use-full-data
+```
+
+### 📊 The Train/Validation Split (Leave-One-Out)
+
+The 32M dataset was split using the **Leave-One-Out (LOO)** strategy:
+
+```
+For each user:
+  - Their LAST rating (most recent, by timestamp) → val_ratings.csv  ← held out for evaluation
+  - ALL other ratings                            → train_ratings.csv ← used for training
+
+Result:
+  train_ratings.csv   31,799,256 rows  (99.4%)  ← ALS trains on this
+  val_ratings.csv        200,948 rows  (0.6%)   ← held out for HR@10 / NDCG@10 evaluation
+```
+
+> [!IMPORTANT]
+> We trained ALS on `train_ratings.csv`, **NOT** on the full `rating.csv`. This is the correct way to evaluate fairly — the model never saw the held-out ratings while training.
+
+> [!NOTE]
+> After final evaluation (HR@10 / NDCG@10), we will retrain on the **full data** (`--use-full-data`) before deploying to production. This is standard ML practice — validate on the split, then retrain on all data for maximum quality.
 
 ---
 

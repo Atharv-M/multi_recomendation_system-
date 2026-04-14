@@ -106,7 +106,39 @@
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        /* Trailer Modal Overlay */
+        #trailer-modal {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
         }
+
+        #trailer-modal .trailer-content {
+            position: relative;
+            width: 80%;
+            max-width: 900px;
+            aspect-ratio: 16/9;
+            background: #000;
+            border: 2px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(245,197,24,0.3);
+        }
+
+        .close-trailer-btn {
+            position: absolute;
+            top: -40px; right: -40px;
+            color: #fff;
+            font-size: 30px;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+        }
+
+        .close-trailer-btn:hover { color: #f5c518; }
     </style>
 </head>
 
@@ -116,6 +148,14 @@
     <div id="global-spinner-overlay" style="display: none;">
         <div class="spinner"></div>
         <div id="spinner-message">Compiling AI Models in the Cloud... ⏳</div>
+    </div>
+
+    <!-- Cinematic Trailer Overlay Container -->
+    <div id="trailer-modal" onclick="closeTrailer(event)">
+        <div class="trailer-content">
+            <button class="close-trailer-btn" onclick="closeTrailer(null, true)">×</button>
+            <iframe id="trailer-iframe" width="100%" height="100%" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </div>
     </div>
 
     <div class="container">
@@ -385,7 +425,23 @@
             }
         }
 
+        // --- Cinematic Trailer Logic ---
+        function openTrailer(youtubeId) {
+            const modal = document.getElementById("trailer-modal");
+            const iframe = document.getElementById("trailer-iframe");
+            iframe.src = `https://www.youtube.com/embed/${youtubeId}?autoplay=1`;
+            modal.style.display = "flex";
+        }
 
+        function closeTrailer(event, forceClose=false) {
+            const modal = document.getElementById("trailer-modal");
+            // Only close if clicking the dark overlay directly or if forceClose is true
+            if (forceClose || (event && event.target === modal)) {
+                const iframe = document.getElementById("trailer-iframe");
+                iframe.src = ""; // destroy the video instantly to kill audio
+                modal.style.display = "none";
+            }
+        }
 
         async function handleLogout() {
             const { error } = await supabaseClient.auth.signOut();
@@ -542,6 +598,10 @@
                 ? `<a href="${movie.imdb_link}" target="_blank" class="imdb-link" style="display: block; margin-top: 5px; color: #f5c518; text-decoration: none; font-weight: bold;">Watch ↗</a>`
                 : '';
 
+            const trailerBtnHtml = movie.youtube_trailer_id
+                ? `<button onclick="openTrailer('${movie.youtube_trailer_id}')" style="display: block; margin-top: 8px; width: 100%; background: #c4302b; color: white; padding: 6px; border: none; font-weight: bold; cursor: pointer; border-radius:4px;">▶ Trailer</button>`
+                : '';
+
             const uniqueId = Math.random().toString(36).substring(7);
 
             card.innerHTML = `
@@ -550,6 +610,7 @@
                     <h3>${movie.title}</h3>
                     <p>🎭 ${genres}</p>
                     ${imdbLinkHtml}
+                    ${trailerBtnHtml}
                     ${currentUser ? `
                     <div class="star-rating" id="rating-${uniqueId}">
                         <input type="radio" id="star5-${uniqueId}" name="rating-${uniqueId}" value="5" onclick="rateMovie(${movie.movieId}, 5, '${uniqueId}')" />

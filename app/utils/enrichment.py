@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def enrich_movies(recommendations_df: pd.DataFrame, links_df: pd.DataFrame):
     
-    # Create a dictionary for O(1) lookup: movieId -> imdbId
+    # Create maps for O(1) lookup
     imdb_map = links_df.set_index("movieId")["imdbId"].to_dict()
     enriched = []
     
@@ -13,7 +13,11 @@ def enrich_movies(recommendations_df: pd.DataFrame, links_df: pd.DataFrame):
     def fetch_details(row):
         movie_id = row["movieId"]
         imdb_id = imdb_map.get(movie_id)
+        
         omdb_data = None
+        
+        from app.utils.tmdb import get_youtube_trailer_id
+        trailer_id = get_youtube_trailer_id(row["title"])
         
         imdb_url = None
         if imdb_id is not None and not pd.isna(imdb_id):
@@ -34,7 +38,8 @@ def enrich_movies(recommendations_df: pd.DataFrame, links_df: pd.DataFrame):
             "poster": omdb_data["poster"] if omdb_data else None,
             "rating": omdb_data["rating"] if omdb_data else None,
             "overview": omdb_data["overview"] if omdb_data else None,
-            "imdb_link": imdb_url
+            "imdb_link": imdb_url,
+            "youtube_trailer_id": trailer_id
         }
 
     # Use ThreadPoolExecutor to fetch details in parallel
