@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 def get_youtube_trailer_id(movie_title: str):
     """
     Intelligently scrapes YouTube search results to locate the official trailer 
-    ID for a movie, bypassing any blocked TMDB API networks natively.
+    ID for a movie
     Returns the 11-character hash (e.g., 'dQw4w9WgXcQ') or None.
     """
     if not movie_title:
