@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About — NeuralFlick</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <style>
+        /* HERO */
+        .about-hero {
+            text-align: center;
+            padding: 72px 20px 60px;
+            position: relative;
+        }
+        .hero-badge {
+            display: inline-block;
+            background: rgba(245,197,24,0.12);
+            border: 1px solid rgba(245,197,24,0.3);
+            color: #f5c518;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 6px 16px;
+            border-radius: 100px;
+            margin-bottom: 20px;
+        }
+        .about-hero h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            letter-spacing: -1.5px;
+            margin-bottom: 16px;
+            line-height: 1.1;
+        }
+        .about-hero h1 span { color: #f5c518; }
+        .about-hero .tagline {
+            font-size: 1.1rem;
+            color: #888;
+            max-width: 540px;
+            margin: 0 auto 32px;
+            line-height: 1.6;
+        }
+        .hero-cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 26px;
+            background: #f5c518;
+            color: #000;
+            font-weight: 700;
+            border-radius: 8px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .hero-cta:hover { background: #ffd740; }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+            margin: 60px 0;
+        }
+
+        /* Section Heading */
+        .section-heading {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .section-heading h2 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            border-left: none;
+            padding-left: 0;
+            margin-top: 0;
+        }
+        .section-heading p { color: #777; font-size: 0.95rem; }
+
+        /* STATS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+            margin-bottom: 60px;
+        }
+        .stat-box {
+            background: #111;
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 16px;
+            padding: 28px 20px;
+            text-align: center;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .stat-box:hover {
+            transform: translateY(-3px);
+            border-color: rgba(245,197,24,0.25);
+        }
+        .stat-box .stat-icon { font-size: 2rem; margin-bottom: 8px; }
+        .stat-box .stat-value {
+            font-size: 2.4rem;
+            font-weight: 900;
+            color: #f5c518;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+        .stat-box .stat-label { font-size: 0.78rem; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* HOW IT WORKS */
+        .how-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 60px;
+        }
+        .how-step {
+            background: #111;
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 16px;
+            padding: 28px 22px;
+            position: relative;
+        }
+        .how-step-num {
+            position: absolute;
+            top: -12px; left: 20px;
+            background: #f5c518;
+            color: #000;
+            font-weight: 900;
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 100px;
+        }
+        .how-step .icon { font-size: 2rem; margin-bottom: 12px; }
+        .how-step h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+        .how-step p { font-size: 0.85rem; color: #777; line-height: 1.5; }
+
+        /* AI MODELS */
+        .models-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 60px;
+        }
+        .model-card {
+            background: #111;
+            border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 16px;
+            padding: 26px 22px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .model-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+        }
+        .model-card .model-icon { font-size: 2.2rem; margin-bottom: 12px; }
+        .model-card h3 { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; }
+        .model-card .model-tag {
+            display: inline-block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 2px 9px;
+            border-radius: 100px;
+            margin-bottom: 12px;
+        }
+        .tag-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+        .tag-purple { background: rgba(168,85,247,0.15); color: #c084fc; }
+        .tag-green { background: rgba(34,197,94,0.15); color: #4ade80; }
+        .tag-orange { background: rgba(249,115,22,0.15); color: #fb923c; }
+        .model-card p { font-size: 0.85rem; color: #777; line-height: 1.5; }
+        .model-metric {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            font-size: 0.78rem;
+            color: #555;
+        }
+        .model-metric strong { color: #bbb; }
+
+        /* TECH STACK */
+        .tech-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 60px;
+        }
+        .tech-chip {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: #161616;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 10px 18px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: border-color 0.2s;
+        }
+        .tech-chip:hover { border-color: rgba(245,197,24,0.3); color: #f5c518; }
+        .tech-chip .chip-icon { font-size: 1.1rem; }
+
+        /* FOOTER */
+        .about-footer {
+            text-align: center;
+            padding: 48px 20px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+            color: #555;
+        }
+        .about-footer strong { color: #888; }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">🎬 Neural<span>Flick</span></a>
+        <ul class="navbar-links">
+            <li><a href="/">🏠 Home</a></li>
+            <li><a href="/community">🌍 Community</a></li>
+            <li><a href="/my-ratings">⭐ My Ratings</a></li>
+            <li><a href="/about" class="active">ℹ️ About</a></li>
+        </ul>
+        <div class="navbar-right">
+            <a href="/" class="nav-btn nav-btn-logout">← Back to Home</a>
+        </div>
+    </nav>
+
+    <div class="container">
+
+        <!-- HERO -->
+        <div class="about-hero">
+            <div class="hero-badge">🧠 Atharv Mishra · Deep Learning Project</div>
+            <h1>Built on <span>32 Million</span><br>Real Movie Ratings</h1>
+            <p class="tagline">NeuralFlick is a hybrid AI recommendation system that combines 4 different machine learning algorithms to deliver hyper-personalized movie recommendations.</p>
+            <a href="https://github.com/Atharv-M/multi_recomendation_system-" target="_blank" class="hero-cta">
+                ⭐ View on GitHub
+            </a>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- SYSTEM STATS -->
+        <div class="section-heading">
+            <h2>📊 System at a Glance</h2>
+            <p>Powered by the MovieLens 32M dataset from the University of Minnesota</p>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-icon">🎬</div>
+                <div class="stat-value">87K+</div>
+                <div class="stat-label">Movies</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-value">32M</div>
+                <div class="stat-label">Training Ratings</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value">200K+</div>
+                <div class="stat-label">Dataset Users</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">🧠</div>
+                <div class="stat-value">4</div>
+                <div class="stat-label">AI Models</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value">5s</div>
+                <div class="stat-label">Live Fine-Tune</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-icon">🏷️</div>
+                <div class="stat-value">1.1M</div>
+                <div class="stat-label">Movie Tags</div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- HOW IT WORKS -->
+        <div class="section-heading">
+            <h2>⚙️ How It Works</h2>
+            <p>From your first click to a personalized recommendation in milliseconds</p>
+        </div>
+        <div class="how-grid">
+            <div class="how-step">
+                <div class="how-step-num">Step 1</div>
+                <div class="icon">🔍</div>
+                <h3>You Search or Browse</h3>
+                <p>Search for any movie or browse trending picks. New users get top-rated movies powered by a Bayesian popularity engine.</p>
+            </div>
+            <div class="how-step">
+                <div class="how-step-num">Step 2</div>
+                <div class="icon">🧠</div>
+                <h3>AI Models Activate</h3>
+                <p>Depending on context, the system routes your request to the best-suited model — ALS, NeuMF, Content-Based, or Popularity.</p>
+            </div>
+            <div class="how-step">
+                <div class="how-step-num">Step 3</div>
+                <div class="icon">🎨</div>
+                <h3>Enrichment Engine</h3>
+                <p>10 parallel threads fetch movie posters from OMDB and trailer IDs from YouTube for every result — in real-time.</p>
+            </div>
+            <div class="how-step">
+                <div class="how-step-num">Step 4</div>
+                <div class="icon">⭐</div>
+                <h3>You Rate, It Learns</h3>
+                <p>Every star rating you submit is saved to Supabase. The NCF model fine-tunes itself on your new data in under 5 seconds.</p>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- AI MODELS -->
+        <div class="section-heading">
+            <h2>🤖 The 4 AI Models</h2>
+            <p>Each model solves a different part of the recommendation problem</p>
+        </div>
+        <div class="models-grid">
+            <div class="model-card">
+                <div class="model-icon">⚡</div>
+                <h3>ALS — Implicit Collaborative Filtering</h3>
+                <div class="model-tag tag-blue">Matrix Factorization</div>
+                <p>Decomposes the 32M rating matrix into 50-dimensional user and movie embeddings using Alternating Least Squares. Uses all CPU cores via C++ OpenBLAS threading.</p>
+                <div class="model-metric"><strong>Speed:</strong> ~20ms per query · <strong>Factors:</strong> 50 · <strong>Iterations:</strong> 15</div>
+            </div>
+            <div class="model-card">
+                <div class="model-icon">🧠</div>
+                <h3>NeuMF — Neural Collaborative Filtering</h3>
+                <div class="model-tag tag-purple">Deep Learning · PyTorch</div>
+                <p>Hybrid neural network combining GMF (linear) + MLP (non-linear) towers. Content-aware via genre one-hot encoding + tag EmbeddingBag. Fine-tunes on live data in ~5 seconds.</p>
+                <div class="model-metric"><strong>Architecture:</strong> 128→64→32 · <strong>Dropout:</strong> 0.2 · <strong>Optimizer:</strong> Adam</div>
+            </div>
+            <div class="model-card">
+                <div class="model-icon">🎭</div>
+                <h3>Content-Based Filtering</h3>
+                <div class="model-tag tag-green">TF-IDF + Cosine Similarity</div>
+                <p>Builds a feature matrix from movie genres and 1.1M+ user-generated tags via TF-IDF vectorization. Finds movies similar in style without needing any user data.</p>
+                <div class="model-metric"><strong>Features:</strong> 5,000 TF-IDF · <strong>Similarity:</strong> Chunked L2 cosine</div>
+            </div>
+            <div class="model-card">
+                <div class="model-icon">🔥</div>
+                <h3>Popularity-Based Model</h3>
+                <div class="model-tag tag-orange">Cold Start Solution</div>
+                <p>Uses the IMDb-style Bayesian weighted rating formula to rank movies. Prevents low-vote movies from ranking above well-established favorites. Perfect for new users.</p>
+                <div class="model-metric"><strong>Formula:</strong> Weighted Bayesian Average · <strong>Threshold:</strong> 70th percentile</div>
+            </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <!-- TECH STACK -->
+        <div class="section-heading">
+            <h2>🛠️ Technology Stack</h2>
+            <p>Built with modern, production-grade tools end to end</p>
+        </div>
+        <div class="tech-grid">
+            <div class="tech-chip"><span class="chip-icon">🔥</span> PyTorch 2.0</div>
+            <div class="tech-chip"><span class="chip-icon">🐍</span> Python 3.12</div>
+            <div class="tech-chip"><span class="chip-icon">⚡</span> FastAPI</div>
+            <div class="tech-chip"><span class="chip-icon">🦙</span> Uvicorn ASGI</div>
+            <div class="tech-chip"><span class="chip-icon">📊</span> scikit-learn</div>
+            <div class="tech-chip"><span class="chip-icon">🧮</span> Implicit ALS</div>
+            <div class="tech-chip"><span class="chip-icon">🐼</span> Pandas + NumPy</div>
+            <div class="tech-chip"><span class="chip-icon">🗜️</span> SciPy Sparse</div>
+            <div class="tech-chip"><span class="chip-icon">🔐</span> Supabase Auth</div>
+            <div class="tech-chip"><span class="chip-icon">🐘</span> PostgreSQL</div>
+            <div class="tech-chip"><span class="chip-icon">🎬</span> OMDB API</div>
+            <div class="tech-chip"><span class="chip-icon">▶️</span> YouTube Scraper</div>
+            <div class="tech-chip"><span class="chip-icon">📦</span> joblib</div>
+            <div class="tech-chip"><span class="chip-icon">🌐</span> Jinja2 + Vanilla JS</div>
+            <div class="tech-chip"><span class="chip-icon">🐙</span> Git LFS</div>
+        </div>
+
+        <!-- FOOTER -->
+        <div class="about-footer">
+            <p>Made with ❤️ using <strong>MovieLens 32M</strong> · <strong>PyTorch</strong> · <strong>FastAPI</strong> · <strong>Supabase</strong></p>
+            <p style="margin-top: 6px; font-size: 0.8rem;">Data: GroupLens Research, University of Minnesota</p>
+        </div>
+
+    </div>
+</body>
+</html>

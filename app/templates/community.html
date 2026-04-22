@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Community — NeuralFlick</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <style>
+        .page-hero {
+            text-align: center;
+            padding: 48px 0 36px;
+        }
+        .page-hero h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 8px; }
+        .page-hero p { color: #888; font-size: 1rem; }
+
+        .community-stats {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+        }
+        .c-stat {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px;
+            padding: 14px 24px;
+            text-align: center;
+        }
+        .c-stat .val { font-size: 1.8rem; font-weight: 800; color: #f5c518; }
+        .c-stat .lbl { font-size: 0.75rem; color: #666; text-transform: uppercase; }
+
+        /* Feed Layout */
+        .feed-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 28px;
+            align-items: start;
+        }
+        @media (max-width: 900px) {
+            .feed-layout { grid-template-columns: 1fr; }
+        }
+
+        .section-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            border-left: 4px solid #e50914;
+            padding-left: 10px;
+        }
+
+        /* Activity Feed Items */
+        .feed-list { display: flex; flex-direction: column; gap: 12px; }
+
+        .feed-item {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: #141414;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 14px;
+            transition: border-color 0.2s ease, background 0.2s ease;
+            animation: fadeIn 0.4s ease forwards;
+            opacity: 0;
+        }
+        @keyframes fadeIn { to { opacity: 1; } }
+
+        .feed-item:hover {
+            background: #1a1a1a;
+            border-color: rgba(245,197,24,0.2);
+        }
+        .feed-poster {
+            width: 54px; height: 78px;
+            object-fit: cover;
+            border-radius: 8px;
+            flex-shrink: 0;
+            background: #222;
+        }
+        .feed-body { flex: 1; min-width: 0; }
+        .feed-movie-title {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 3px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .feed-genres {
+            font-size: 0.72rem;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .feed-meta {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .user-chip {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.78rem;
+            color: #bbb;
+        }
+        .user-chip .avatar-sm {
+            width: 20px; height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f5c518, #e50914);
+            color: #000;
+            font-size: 0.65rem;
+            font-weight: 800;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .time-label { font-size: 0.72rem; color: #555; }
+        .feed-stars { display: flex; gap: 1px; }
+        .feed-stars span { font-size: 0.85rem; }
+
+        /* Trending sidebar */
+        .trending-card {
+            background: #141414;
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 20px;
+            position: sticky;
+            top: 84px;
+        }
+        .trending-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .trending-item:last-child { border-bottom: none; }
+        .trending-rank {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #333;
+            min-width: 28px;
+        }
+        .trending-rank.top { color: #f5c518; }
+        .trending-title {
+            font-size: 0.88rem;
+            font-weight: 600;
+            flex: 1;
+        }
+        .trending-count {
+            font-size: 0.75rem;
+            color: #888;
+            background: rgba(255,255,255,0.06);
+            border-radius: 20px;
+            padding: 3px 8px;
+        }
+
+        /* Refresh indicator */
+        .refresh-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+        .last-updated { font-size: 0.75rem; color: #555; }
+        .live-dot {
+            display: inline-block;
+            width: 7px; height: 7px;
+            background: #22c55e;
+            border-radius: 50%;
+            margin-right: 5px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        #loading-feed { text-align: center; padding: 40px; color: #555; font-size: 1rem; }
+    </style>
+</head>
+<body>
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">🎬 Neural<span>Flick</span></a>
+        <ul class="navbar-links">
+            <li><a href="/" id="nav-home">🏠 Home</a></li>
+            <li><a href="/community" class="active">🌍 Community</a></li>
+            <li><a href="/my-ratings">⭐ My Ratings</a></li>
+            <li><a href="/about">ℹ️ About</a></li>
+        </ul>
+        <div class="navbar-right" id="navbar-auth">
+            <a href="/login" class="nav-btn nav-btn-login">Login / Sign Up</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-hero">
+            <h1>🌍 Community Activity</h1>
+            <p>See what movies the NeuralFlick community is watching and rating right now</p>
+        </div>
+
+        <div class="community-stats" id="community-stats">
+            <div class="c-stat"><div class="val" id="stat-ratings">—</div><div class="lbl">Total Ratings</div></div>
+            <div class="c-stat"><div class="val" id="stat-users">—</div><div class="lbl">Active Users</div></div>
+            <div class="c-stat"><div class="val" id="stat-avg">—</div><div class="lbl">Avg Rating</div></div>
+        </div>
+
+        <div class="feed-layout">
+            <!-- Activity Feed -->
+            <div>
+                <div class="refresh-bar">
+                    <div class="section-title" style="margin-bottom:0;">Recent Activity</div>
+                    <div class="last-updated"><span class="live-dot"></span><span id="last-updated-text">Live</span></div>
+                </div>
+                <div id="loading-feed">⏳ Loading community feed...</div>
+                <div class="feed-list" id="feed-list" style="display:none;"></div>
+            </div>
+
+            <!-- Trending Sidebar -->
+            <div>
+                <div class="section-title">🔥 Most Rated Today</div>
+                <div class="trending-card">
+                    <div class="trending-list" id="trending-list">
+                        <div style="color:#555; font-size:0.9rem; padding:8px 0;">Loading trending movies...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        const supabaseUrl = "{{ supabase_url }}";
+        const supabaseKey = "{{ supabase_key }}";
+        const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+        function timeAgo(dateStr) {
+            const diff = Date.now() - new Date(dateStr).getTime();
+            const s = Math.floor(diff / 1000);
+            if (s < 60) return `${s}s ago`;
+            const m = Math.floor(s / 60);
+            if (m < 60) return `${m}m ago`;
+            const h = Math.floor(m / 60);
+            if (h < 24) return `${h}h ago`;
+            const d = Math.floor(h / 24);
+            return d === 1 ? 'Yesterday' : `${d} days ago`;
+        }
+
+        function renderStars(rating) {
+            const full = Math.round(rating);
+            return Array.from({length: 5}, (_, i) =>
+                `<span style="color:${i < full ? '#f5c518' : '#2a2a2a'}">★</span>`
+            ).join('');
+        }
+
+        let feedData = [];
+        let posterCache = {};
+
+        async function getPoster(title, movie_id) {
+            if (posterCache[movie_id]) return posterCache[movie_id];
+            try {
+                const res = await fetch(`/search?query=${encodeURIComponent(title)}`);
+                const data = await res.json();
+                const match = data.find(m => m.movieId === movie_id) || data[0];
+                const url = match?.poster || null;
+                posterCache[movie_id] = url;
+                return url;
+            } catch { return null; }
+        }
+
+        function createFeedItem(item, poster, delay) {
+            const genres = (item.genres || '').replace(/\|/g, ', ');
+            const initial = (item.user_name || 'A').charAt(0).toUpperCase();
+            const div = document.createElement('div');
+            div.className = 'feed-item';
+            div.style.animationDelay = `${delay * 50}ms`;
+            div.innerHTML = `
+                <img src="${poster || 'https://via.placeholder.com/54x78?text=🎬'}"
+                     class="feed-poster" alt="${item.title}"
+                     onerror="this.src='https://via.placeholder.com/54x78?text=🎬'">
+                <div class="feed-body">
+                    <div class="feed-movie-title">${item.title}</div>
+                    <div class="feed-genres">${genres || 'Unknown genre'}</div>
+                    <div class="feed-meta">
+                        <div class="user-chip">
+                            <div class="avatar-sm">${initial}</div>
+                            ${item.user_name || 'Anonymous'}
+                        </div>
+                        <div class="feed-stars">${renderStars(item.rating)}</div>
+                        <div class="time-label">${timeAgo(item.rated_at)}</div>
+                    </div>
+                </div>`;
+            return div;
+        }
+
+        async function loadFeed() {
+            const res = await fetch('/feedback/community/feed');
+            feedData = await res.json();
+
+            // Stats
+            document.getElementById('stat-ratings').textContent = feedData.length + '+';
+            const uniqueUsers = new Set(feedData.map(r => r.user_name)).size;
+            document.getElementById('stat-users').textContent = uniqueUsers;
+            const avg = feedData.length ? (feedData.reduce((s, r) => s + r.rating, 0) / feedData.length).toFixed(1) : '—';
+            document.getElementById('stat-avg').textContent = avg + '★';
+
+            // Trending
+            const movieCount = {};
+            feedData.forEach(r => {
+                movieCount[r.title] = (movieCount[r.title] || 0) + 1;
+            });
+            const sorted = Object.entries(movieCount).sort((a,b) => b[1]-a[1]).slice(0, 8);
+            const trendingList = document.getElementById('trending-list');
+            trendingList.innerHTML = sorted.map(([title, count], i) => `
+                <div class="trending-item">
+                    <div class="trending-rank ${i < 3 ? 'top' : ''}">#${i+1}</div>
+                    <div class="trending-title">${title}</div>
+                    <div class="trending-count">${count} rated</div>
+                </div>`).join('');
+
+            // Feed items
+            document.getElementById('loading-feed').style.display = 'none';
+            const feedList = document.getElementById('feed-list');
+            feedList.style.display = 'flex';
+            feedList.innerHTML = '';
+
+            // Render first 20 immediately, lazy-load posters
+            const visible = feedData.slice(0, 20);
+            visible.forEach((item, i) => {
+                const el = createFeedItem(item, null, i);
+                feedList.appendChild(el);
+                // Load poster async
+                getPoster(item.title, item.movie_id).then(url => {
+                    if (url) el.querySelector('.feed-poster').src = url;
+                });
+            });
+
+            // Update timestamp
+            document.getElementById('last-updated-text').textContent =
+                'Updated ' + new Date().toLocaleTimeString();
+        }
+
+        window.onload = async () => {
+            // Navbar auth
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            const navbarAuth = document.getElementById('navbar-auth');
+            if (session) {
+                const name = session.user.user_metadata?.full_name || session.user.email;
+                navbarAuth.innerHTML = `
+                    <div class="nav-user-chip">
+                        <div class="nav-avatar">${name.charAt(0).toUpperCase()}</div>
+                        <span>${name.split(' ')[0]}</span>
+                    </div>
+                    <a href="/" class="nav-btn nav-btn-logout">← Home</a>`;
+            }
+
+            await loadFeed();
+            // Auto refresh every 60s
+            setInterval(loadFeed, 60000);
+        };
+    </script>
+</body>
+</html>

@@ -63,6 +63,35 @@ def login_page(request: Request):
         }
     )
 
+@app.get("/my-ratings", response_class=HTMLResponse)
+def my_ratings_page(request: Request):
+    from app.config import SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY
+    return templates.TemplateResponse(
+        request=request,
+        name="my_ratings.html",
+        context={
+            "supabase_url": SUPABASE_PROJECT_URL,
+            "supabase_key": SUPABASE_ANON_KEY
+        }
+    )
+
+@app.get("/community", response_class=HTMLResponse)
+def community_page(request: Request):
+    from app.config import SUPABASE_PROJECT_URL, SUPABASE_ANON_KEY
+    return templates.TemplateResponse(
+        request=request,
+        name="community.html",
+        context={
+            "supabase_url": SUPABASE_PROJECT_URL,
+            "supabase_key": SUPABASE_ANON_KEY
+        }
+    )
+
+@app.get("/about", response_class=HTMLResponse)
+def about_page(request: Request):
+    return templates.TemplateResponse(request=request, name="about.html", context={})
+
 @app.get("/health")
 def health_check():
     return {"status": "OK", "message": "Movie Recommender API is running"}
+
