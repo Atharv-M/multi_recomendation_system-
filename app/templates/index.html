@@ -5,7 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Movie Recommendation System</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
     <style>
         /* Onboarding Modal Styles */
         .modal-overlay {
@@ -144,19 +147,19 @@
     </style>
 </head>
 
-<body>
+<body style="padding-top:90px;">
 
     <!-- ===== GLOBAL NAVBAR ===== -->
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">🎬 Neural<span>Flick</span></a>
-        <ul class="navbar-links">
-            <li><a href="/" class="active" id="nav-home">🏠 Home</a></li>
-            <li><a href="/community" id="nav-community">🌍 Community</a></li>
-            <li><a href="/my-ratings" id="nav-myratings">⭐ My Ratings</a></li>
-            <li><a href="/about" id="nav-about">ℹ️ About</a></li>
+    <nav style="position:fixed!important;top:0;left:0;right:0;width:100%;height:68px;background:rgba(10,10,10,0.96);border-bottom:1px solid rgba(255,255,255,0.08);display:flex!important;align-items:center;justify-content:space-between;padding:0 32px;z-index:9999;box-sizing:border-box;backdrop-filter:blur(16px);">
+        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-weight:800;font-size:1.2rem;letter-spacing:-0.3px;">🎬 Neural<span style="color:#f5c518;">Flick</span></a>
+        <ul style="display:flex!important;flex-direction:row!important;align-items:center;gap:6px;list-style:none!important;margin:0;padding:0;">
+            <li style="list-style:none!important;margin:0;padding:0;"><a href="/" class="active" id="nav-home" style="display:flex;align-items:center;gap:6px;color:#aaa;text-decoration:none;font-size:0.9rem;font-weight:500;padding:8px 14px;border-radius:8px;">🏠 Home</a></li>
+            <li style="list-style:none!important;margin:0;padding:0;"><a href="/community" id="nav-community" style="display:flex;align-items:center;gap:6px;color:#aaa;text-decoration:none;font-size:0.9rem;font-weight:500;padding:8px 14px;border-radius:8px;">🌍 Community</a></li>
+            <li style="list-style:none!important;margin:0;padding:0;"><a href="/my-ratings" id="nav-myratings" style="display:flex;align-items:center;gap:6px;color:#aaa;text-decoration:none;font-size:0.9rem;font-weight:500;padding:8px 14px;border-radius:8px;">⭐ My Ratings</a></li>
+            <li style="list-style:none!important;margin:0;padding:0;"><a href="/about" id="nav-about" style="display:flex;align-items:center;gap:6px;color:#aaa;text-decoration:none;font-size:0.9rem;font-weight:500;padding:8px 14px;border-radius:8px;">ℹ️ About</a></li>
         </ul>
-        <div class="navbar-right" id="navbar-auth">
-            <a href="/login" class="nav-btn nav-btn-login">Login / Sign Up</a>
+        <div id="navbar-auth" style="display:flex;align-items:center;gap:12px;">
+            <a href="/login" style="padding:8px 18px;border-radius:8px;font-size:0.88rem;font-weight:600;cursor:pointer;background:#f5c518;color:#000;text-decoration:none;display:inline-flex;align-items:center;">Login / Sign Up</a>
         </div>
     </nav>
 
@@ -199,11 +202,11 @@
         </div>
 
         <div id="personal-recommendations-section" style="display: none;">
-            <h2 style="color: #f5c518;">⚡ Fast Math (SVD) Recommendations</h2>
-            <div id="svd-recommendations" class="movie-row"></div>
-            
-            <h2 style="color: #4CAF50; margin-top: 40px;">🧠 Ultra Deep-Learning (NeuMF) Recommendations</h2>
+            <h2 style="color: #4CAF50;">🧠 Ultra Deep-Learning (NeuMF) Recommendations</h2>
             <div id="ncf-recommendations" class="movie-row"></div>
+            
+            <h2 style="color: #f5c518; margin-top: 40px;">⚡ Fast Math (ALS) Recommendations</h2>
+            <div id="svd-recommendations" class="movie-row"></div>
         </div>
 
         <div id="recommendations-section" style="display: none;">
@@ -410,15 +413,15 @@
                 const displayName = userName ? userName : currentUser.email;
                 const initial = displayName.charAt(0).toUpperCase();
                 navbarAuth.innerHTML = `
-                    <div class="nav-user-chip">
-                        <div class="nav-avatar">${initial}</div>
-                        <span>${displayName.split(' ')[0]}</span>
+                    <div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:50px;padding:6px 14px 6px 8px;font-size:0.85rem;font-weight:500;">
+                        <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f5c518,#e50914);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.75rem;color:#000;">${initial}</div>
+                        <span style="color:#fff;">${displayName.split(' ')[0]}</span>
                     </div>
-                    <button class="nav-btn nav-btn-logout" onclick="loadPersonalRecommendations()">⚡ My Picks</button>
-                    <button class="nav-btn nav-btn-logout" onclick="handleLogout()">Logout</button>
+                    <button onclick="loadPersonalRecommendations()" style="padding:8px 18px;border-radius:8px;font-size:0.88rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.08);color:#ccc;border:1px solid rgba(255,255,255,0.1);display:inline-flex;align-items:center;">⚡ My Picks</button>
+                    <button onclick="handleLogout()" style="padding:8px 18px;border-radius:8px;font-size:0.88rem;font-weight:600;cursor:pointer;background:rgba(255,255,255,0.08);color:#ccc;border:1px solid rgba(255,255,255,0.1);display:inline-flex;align-items:center;">Logout</button>
                 `;
             } else {
-                navbarAuth.innerHTML = `<a href="/login" class="nav-btn nav-btn-login">Login / Sign Up</a>`;
+                navbarAuth.innerHTML = `<a href="/login" style="padding:8px 18px;border-radius:8px;font-size:0.88rem;font-weight:600;cursor:pointer;background:#f5c518;color:#000;text-decoration:none;display:inline-flex;align-items:center;">Login / Sign Up</a>`;
                 personalRecSection.style.display = "none";
             }
         }

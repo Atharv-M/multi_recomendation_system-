@@ -22,3 +22,7 @@ ENV/
 .DS_Store
 /artifacts/*
 
+
+# Claude
+.claude
+graphify-out/

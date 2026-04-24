@@ -94,4 +94,3 @@ def about_page(request: Request):
 @app.get("/health")
 def health_check():
     return {"status": "OK", "message": "Movie Recommender API is running"}
-

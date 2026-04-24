@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Ratings — NeuralFlick</title>
-    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
     <style>
         .page-hero {
             padding: 48px 0 32px;
@@ -153,18 +156,18 @@
         }
     </style>
 </head>
-<body>
+<body style="padding-top:90px;">
     <!-- NAVBAR -->
-    <nav class="navbar">
-        <a href="/" class="navbar-brand">🎬 Neural<span>Flick</span></a>
-        <ul class="navbar-links">
-            <li><a href="/" id="nav-home">🏠 Home</a></li>
-            <li><a href="/community" id="nav-community">🌍 Community</a></li>
-            <li><a href="/my-ratings" class="active" id="nav-myratings">⭐ My Ratings</a></li>
-            <li><a href="/about" id="nav-about">ℹ️ About</a></li>
+    <nav style="position:fixed!important;top:0;left:0;right:0;width:100%;height:68px;background:rgba(10,10,10,0.96);border-bottom:1px solid rgba(255,255,255,0.08);display:flex!important;align-items:center;justify-content:space-between;padding:0 32px;z-index:9999;box-sizing:border-box;">
+        <a href="/" style="display:flex;align-items:center;gap:10px;text-decoration:none;color:#fff;font-weight:800;font-size:1.2rem;">🎬 Neural<span style="color:#f5c518;">Flick</span></a>
+        <ul style="display:flex!important;flex-direction:row!important;align-items:center;gap:6px;list-style:none!important;margin:0;padding:0;">
+            <li style="list-style:none!important;margin:0;padding:0;"><a href="/" id="nav-home" style="color:#aaa;text-decoration:none;font-size:0.9rem;font-weight:500;padding:8px 14px;border-radius:8px;">🏠 Home</a></li>
+            <li style="list-style:none!important;margin:0;padding:0;"><a href="/community" id="nav-community" style="color:#aaa;text-decoration:none;font-size:0.9rem;font-weight:500;padding:8px 14px;border-radius:8px;">🌍 Community</a></li>
+            <li style="list-style:none!important;margin:0;padding:0;"><a href="/my-ratings" id="nav-myratings" style="color:#f5c518;text-decoration:none;font-size:0.9rem;font-weight:500;padding:8px 14px;border-radius:8px;background:rgba(245,197,24,0.1);">⭐ My Ratings</a></li>
+            <li style="list-style:none!important;margin:0;padding:0;"><a href="/about" id="nav-about" style="color:#aaa;text-decoration:none;font-size:0.9rem;font-weight:500;padding:8px 14px;border-radius:8px;">ℹ️ About</a></li>
         </ul>
-        <div class="navbar-right" id="navbar-auth">
-            <a href="/login" class="nav-btn nav-btn-login">Login / Sign Up</a>
+        <div id="navbar-auth" style="display:flex;align-items:center;gap:12px;">
+            <a href="/login" style="padding:8px 18px;border-radius:8px;font-size:0.88rem;font-weight:600;background:#f5c518;color:#000;text-decoration:none;display:inline-flex;align-items:center;">Login / Sign Up</a>
         </div>
     </nav>
 
