@@ -94,3 +94,15 @@ def about_page(request: Request):
 @app.get("/health")
 def health_check():
     return {"status": "OK", "message": "Movie Recommender API is running"}
+
+@app.post("/admin/reload-model")
+def reload_model():
+    """
+    Hot-reloads all model weights from disk without restarting the server.
+    Call this immediately after running finetune_all.py to make new
+    weights live for all users.
+    """
+    from app.dependencies import reload_hybrid_model, get_hybrid_model
+    reload_hybrid_model()
+    get_hybrid_model()   # eagerly reload so first user request isn't slow
+    return {"status": "ok", "message": "Model reloaded from disk successfully."}

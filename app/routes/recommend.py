@@ -11,11 +11,12 @@ router = APIRouter(prefix="/recommend", tags=["Recommendations"])
 @router.get("/cold-start", response_model=RecommendationList)
 def cold_start_recommendations(
     top_k: int = Query(10, ge=1, le=50),
+    include_trailer: bool = Query(True),   # pass ?include_trailer=false to skip YouTube calls
     model=Depends(get_hybrid_model),
     links_df=Depends(get_links_df)
 ):
     df = model.recommend(top_k=top_k)
-    enriched_recommendations = enrich_movies(df, links_df)
+    enriched_recommendations = enrich_movies(df, links_df, include_trailer=include_trailer)
 
     return {
         "recommendations": enriched_recommendations
@@ -30,8 +31,8 @@ def user_recommendations(
     links_df=Depends(get_links_df)
 ):
     svd_df, ncf_df = model.recommend_dual(user_id=user_id, top_k=top_k)
-    svd_recs = enrich_movies(svd_df, links_df)
-    ncf_recs = enrich_movies(ncf_df, links_df)
+    svd_recs = enrich_movies(svd_df, links_df, include_trailer=True)
+    ncf_recs = enrich_movies(ncf_df, links_df, include_trailer=True)
 
     return {
         "svd_recommendations": svd_recs,
@@ -47,7 +48,7 @@ def similar_movies(
     links_df=Depends(get_links_df)
 ):
     df = model.recommend(movie_id=movie_id, top_k=top_k)
-    enriched_recommendations = enrich_movies(df, links_df)
+    enriched_recommendations = enrich_movies(df, links_df, include_trailer=True)
 
     return {
         "recommendations": enriched_recommendations

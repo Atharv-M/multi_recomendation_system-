@@ -26,3 +26,6 @@ ENV/
 # Claude
 .claude
 graphify-out/
+
+# Fine-tune watermark (local runtime state — do not commit)
+scripts/.finetune_watermark.json

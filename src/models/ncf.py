@@ -119,6 +119,10 @@ class NeuralCollaborativeRecommender:
         self.movie_tags = {} 
         self.max_tags_per_movie = 20
         
+        # Tracks which item indices each user has already interacted with
+        # so recommend() never re-surfaces already-rated movies.
+        self.user_seen_items = {}   # user_idx → set of item indices
+        
         self.mlb = MultiLabelBinarizer()
         
         self.device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
@@ -279,8 +283,9 @@ class NeuralCollaborativeRecommender:
             'user2idx': self.user2idx, 'idx2user': self.idx2user,
             'item2idx': self.item2idx, 'idx2item': self.idx2item,
             'mf_dim': self.mf_dim, 'mlp_dim': self.mlp_dim, 'tag_dim': self.tag_dim,
-            'mlb': self.mlb, 
-            'tag2idx': self.tag2idx, 'idx2tag': self.idx2tag, 'movie_tags': self.movie_tags
+            'mlb': self.mlb,
+            'tag2idx': self.tag2idx, 'idx2tag': self.idx2tag, 'movie_tags': self.movie_tags,
+            'user_seen_items': self.user_seen_items,
         }
         joblib.dump(mappings, NCF_MODEL_PATH / "neumf_mappings.pkl")
         torch.save(self.model.state_dict(), NCF_MODEL_PATH / "neumf_weights.pt")
@@ -300,6 +305,8 @@ class NeuralCollaborativeRecommender:
         self.tag2idx = mappings.get('tag2idx', {"<PAD>": 0})
         self.idx2tag = mappings['idx2tag']
         self.movie_tags = mappings['movie_tags']
+        # Backward compat: older saved models won't have this key
+        self.user_seen_items = mappings.get('user_seen_items', {})
         
         num_users = len(self.user2idx)
         num_items = len(self.item2idx)
@@ -407,6 +414,15 @@ class NeuralCollaborativeRecommender:
                 
         logger.info(f"God-Tier Fine-Tuning execution fully complete! Added {len(new_users_to_add)} New Sign-Ups. (Weights Saved & Active)")
 
+        # Update seen-items index so recommend() immediately excludes the newly rated movies
+        for u_str, m_id in zip(valid_df['userId'].astype(str), valid_df['movieId'].astype(int)):
+            u_idx = self.user2idx.get(u_str)
+            i_idx = self.item2idx.get(m_id)
+            if u_idx is not None and i_idx is not None:
+                if u_idx not in self.user_seen_items:
+                    self.user_seen_items[u_idx] = set()
+                self.user_seen_items[u_idx].add(i_idx)
+
 
     def recommend(self, user_id: str, top_k: int = 10):
         if self.model is None:
@@ -418,6 +434,9 @@ class NeuralCollaborativeRecommender:
             return pd.DataFrame(columns=["movieId", "title", "genres"])
             
         user_idx = self.user2idx[str_user_id]
+
+        # Items this user has already rated — exclude from recommendations
+        seen_item_indices = self.user_seen_items.get(user_idx, set())
         
         all_item_indices = list(self.idx2item.keys())
         all_item_ids = [self.idx2item[idx] for idx in all_item_indices]
@@ -439,13 +458,16 @@ class NeuralCollaborativeRecommender:
         
         with torch.no_grad():
             predictions = self.model(user_tensor, item_tensor, genre_tensor, tag_tensor).cpu().numpy()
-            
-        item_preds = list(zip(all_item_ids, predictions))
-        item_preds.sort(key=lambda x: x[1], reverse=True) 
-        
-        top_items = item_preds[:top_k]
-        top_movie_ids = [m_id for m_id, _ in top_items]
 
+        # Filter out already-seen items, then sort by score
+        item_preds = [
+            (m_id, score)
+            for (m_id, idx, score) in zip(all_item_ids, all_item_indices, predictions)
+            if idx not in seen_item_indices
+        ]
+        item_preds.sort(key=lambda x: x[1], reverse=True)
+        
+        top_movie_ids = [m_id for m_id, _ in item_preds[:top_k]]
         return self.movies_df[self.movies_df["movieId"].isin(top_movie_ids)][["movieId", "title", "genres"]]
 
 if __name__ == "__main__":
