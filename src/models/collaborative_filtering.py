@@ -44,7 +44,8 @@ class CollaborativeRecommender:
 
     def fit(self, ratings_path=None):
         try:
-            from implicit.als import AlternatingLeastSquares
+            
+            from implicit.als import AlternatingLeastSquares 
         except ImportError:
             raise ImportError(
                 "The `implicit` library is not installed.\n"
@@ -200,7 +201,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     use_full = "--use-full-data" in sys.argv
-    ratings_path = None if not use_full else PROCESSED_DATA_DIR.parent / "raw" / "rating.csv"
+    ratings_path = PROCESSED_DATA_DIR / "train_ratings.csv" if not use_full else PROCESSED_DATA_DIR.parent / "raw" / "rating.csv"
 
     if use_full:
         logger.info("Mode: FULL DATA (production retrain)")
